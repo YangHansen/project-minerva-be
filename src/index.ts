@@ -6,6 +6,7 @@ import { connectDB } from './lib/db'
 import { getSupabase } from './lib/supabase'
 import { getResend } from './lib/resend'
 import { authRoutes } from './routes/auth'
+import { userRoutes } from './routes/user'
 
 const config = getConfig()
 
@@ -22,8 +23,15 @@ const app = new Elysia()
       secret: config.jwtSecret
     })
   )
-  .onError(({ code, error }) => {
-    const status = code === 'NOT_FOUND' ? 404 : code === 'VALIDATION' ? 422 : 500
+  .onError(({ code, error, set }) => {
+    const status =
+      typeof set.status === 'number' && set.status >= 400
+        ? set.status
+        : code === 'NOT_FOUND'
+          ? 404
+          : code === 'VALIDATION'
+            ? 422
+            : 500
     const message = error instanceof Error ? error.message : 'Unexpected error'
     return new Response(JSON.stringify({ success: false, message }), {
       status,
@@ -32,6 +40,7 @@ const app = new Elysia()
   })
   .get('/api/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }))
   .use(authRoutes)
+  .use(userRoutes)
   .listen(3000)
 
 console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`)
