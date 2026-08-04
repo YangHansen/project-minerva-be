@@ -2,13 +2,17 @@
   "name": "minerva",
   "version": "1.0.50",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.2",
+    "@elysiajs/jwt": "^1.4.2",
+    "@supabase/supabase-js": "^2.112.0",
     "elysia": "latest",
-    "mongoose": "^9.9.1"
+    "mongoose": "8",
+    "resend": "^6.18.1"
   },
   "devDependencies": {
     "bun-types": "latest"
