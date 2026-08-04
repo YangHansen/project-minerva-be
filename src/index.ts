@@ -3,14 +3,16 @@ import { cors } from '@elysiajs/cors'
 import { jwt } from '@elysiajs/jwt'
 import { getConfig } from './config'
 import { connectDB } from './lib/db'
-import { getSupabase } from './lib/supabase'
+import { getSupabase, ensureDocumentsBucket } from './lib/supabase'
 import { getResend } from './lib/resend'
 import { authRoutes } from './routes/auth'
 import { userRoutes } from './routes/user'
+import { documentRoutes } from './routes/documents'
 
 const config = getConfig()
 
 await connectDB(config.mongodbUri)
+await ensureDocumentsBucket()
 
 export const supabase = getSupabase()
 export const resend = getResend()
@@ -41,6 +43,7 @@ const app = new Elysia()
   .get('/api/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }))
   .use(authRoutes)
   .use(userRoutes)
+  .use(documentRoutes)
   .listen(3000)
 
 console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`)
