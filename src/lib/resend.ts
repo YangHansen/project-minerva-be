@@ -1,5 +1,8 @@
 import { Resend } from 'resend';
+import { getConfig } from '../config';
 
-export function createResend(apiKey: string): Resend {
-  return new Resend(apiKey);
+let instance: Resend | null = null;
+
+export function getResend(): Resend {
+  return (instance ??= new Resend(getConfig().resendApiKey));
 }

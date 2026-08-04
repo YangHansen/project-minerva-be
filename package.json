@@ -10,6 +10,7 @@
     "@elysiajs/cors": "^1.4.2",
     "@elysiajs/jwt": "^1.4.2",
     "@supabase/supabase-js": "^2.112.0",
+    "agent-browser": "^0.33.2",
     "elysia": "latest",
     "mongoose": "8",
     "resend": "^6.18.1"

@@ -1,5 +1,11 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { getConfig } from '../config';
 
-export function createSupabase(url: string, serviceRoleKey: string): SupabaseClient {
-  return createClient(url, serviceRoleKey);
+let instance: SupabaseClient | null = null;
+
+export function getSupabase(): SupabaseClient {
+  return (instance ??= createClient(
+    getConfig().supabaseUrl,
+    getConfig().supabaseServiceRoleKey
+  ));
 }

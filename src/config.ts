@@ -1,6 +1,4 @@
 export interface AppConfig {
-  mongodbUsername: string;
-  mongodbPassword: string;
   mongodbUri: string;
   supabaseUrl: string;
   supabaseServiceRoleKey: string;
@@ -23,7 +21,7 @@ export function getConfig(env: Record<string, string | undefined> = process.env)
   }
   const config = {} as AppConfig;
   for (const [envKey, configKey] of Object.entries(REQUIRED)) {
-    config[configKey] = env[envKey] ?? '';
+    config[configKey] = env[envKey]!;
   }
   return config;
 }
