@@ -3,7 +3,7 @@ import { jwt } from '@elysiajs/jwt'
 import { User } from '../models/User'
 import { UserProfile } from '../models/UserProfile'
 // ponytail: aggregation imports, uncomment with the dashboard aggregation below
-// import { Shortlist, Checklist } from '../models/Pipeline'
+// import { Shortlist } from '../models/Shortlist'
 // import { AIReview } from '../models/AIReview'
 // import { IELTSSubmission } from '../models/IELTS'
 // import { Booking, Mentor } from '../models/Mentor'
@@ -155,17 +155,16 @@ export const userRoutes = new Elysia({ prefix: '/api/user' })
       }
     }
     // ponytail: full aggregation (kept, commented out — re-enable when modules land):
-    // const [user, profile, shortlists, checklists, reviews, submissions, bookings] = await Promise.all([
+    // const [user, profile, shortlists, reviews, submissions, bookings] = await Promise.all([
     //   User.findById(userId),
     //   UserProfile.findOne({ userId }),
     //   Shortlist.find({ userId }),
-    //   Checklist.find({ userId }),
     //   AIReview.find({ userId }).sort({ createdAt: -1 }),
     //   IELTSSubmission.find({ userId }),
     //   Booking.find({ userId, status: 'approved', dateTime: { $gte: new Date() } }).sort({ dateTime: 1 }).limit(1)
     // ])
     //
-    // const scholarshipIds = shortlists.map((s) => s.scholarshipId)
+    // const scholarshipIds = shortlists.map((s) => String(s.scholarshipId))
     // const scholarships = await Scholarship.find({ _id: { $in: scholarshipIds } })
     // const upcoming = shortlists
     //   .map((s) => {
@@ -178,9 +177,10 @@ export const userRoutes = new Elysia({ prefix: '/api/user' })
     //   .sort((a, b) => new Date(a!.deadline).getTime() - new Date(b!.deadline).getTime())[0]
     //
     // const selectedScholarshipId = upcoming ? upcoming.scholarshipId : null
-    // const checklistOfSelected = selectedScholarshipId
-    //   ? checklists.filter((c) => String(c.scholarshipId) === selectedScholarshipId)
-    //   : []
+    // const selectedShortlist = selectedScholarshipId
+    //   ? shortlists.find((s) => String(s.scholarshipId) === selectedScholarshipId)
+    //   : null
+    // const checklistOfSelected = selectedShortlist?.items ?? []
     // const completed = checklistOfSelected.filter((c) => c.isCompleted).length
     //
     // const cvReview = reviews.find((r) => r.reviewType === 'cv')

@@ -10,6 +10,7 @@ import { authRoutes } from './routes/auth'
 import { userRoutes } from './routes/user'
 import { documentRoutes } from './routes/documents'
 import { scholarshipRoutes } from './routes/scholarships'
+import { shortlistRoutes } from './routes/shortlists'
 
 const config = getConfig()
 
@@ -68,6 +69,7 @@ const app = new Elysia()
   .use(userRoutes)
   .use(documentRoutes)
   .use(scholarshipRoutes)
+  .use(shortlistRoutes)
   .listen(3000)
 
 console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`)

@@ -9,6 +9,31 @@ import { getSupabase } from '../lib/supabase'
 import { buildHardFilter, rankByPreference } from '../lib/matching'
 import { getAiRecommendations } from '../lib/cvRecommender'
 import { getConfig } from '../config'
+import { Shortlist, buildChecklistItems } from '../models/Shortlist'
+
+// Inline per Elysia/TS limitation: imported t.Object response schemas break handler return inference
+const shortlistResponse = t.Object({
+  success: t.Boolean(),
+  message: t.String(),
+  shortlist: t.Object({
+    _id: t.String(),
+    userId: t.String(),
+    scholarshipId: t.String(),
+    status: t.String(),
+    notifiedStages: t.Array(t.String()),
+    items: t.Array(
+      t.Object({
+        _id: t.String(),
+        itemType: t.String(),
+        isCompleted: t.Boolean(),
+        documentId: t.Nullable(t.String())
+      })
+    ),
+    createdAt: t.String(),
+    updatedAt: t.String(),
+    __v: t.Number()
+  })
+})
 
 // List fields only (shared by catalog and recommendation wrappers)
 function toListFields(doc: InstanceType<typeof Scholarship>) {
@@ -232,6 +257,54 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
     }
     return { success: true, scholarship }
   })
+
+  // ── POST /api/scholarships/:id/shortlist ────────────────────────────────────
+  .post(
+    '/:id/shortlist',
+    async ({ params, body, userId, set }) => {
+      if (!isValidObjectId(params.id)) {
+        set.status = 400
+        throw new Error('Invalid scholarship id')
+      }
+      const scholarship = await Scholarship.findById(params.id)
+      if (!scholarship) {
+        set.status = 404
+        throw new Error('Scholarship not found')
+      }
+      const existing = await Shortlist.findOne({ userId, scholarshipId: params.id })
+      if (existing) {
+        return {
+          success: true,
+          message: 'Scholarship already in shortlist',
+          shortlist: JSON.parse(JSON.stringify(existing))
+        }
+      }
+      const shortlist = await Shortlist.create({
+        userId,
+        scholarshipId: params.id,
+        status: body.status ?? 'saved',
+        items: buildChecklistItems(scholarship.requiredDocuments)
+      })
+      set.status = 201
+      return {
+        success: true,
+        message: 'Scholarship added to shortlist',
+        shortlist: JSON.parse(JSON.stringify(shortlist))
+      }
+    },
+    {
+      body: t.Object({
+        status: t.Optional(t.Union([t.Literal('saved'), t.Literal('preparing')]))
+      }),
+      response: shortlistResponse,
+      detail: {
+        tags: ['Scholarships'],
+        security: [{ bearerAuth: [] }],
+        summary: 'Simpan beasiswa ke shortlist',
+        description: 'Menyimpan beasiswa ke shortlist pengguna dan otomatis membuat checklist items dari requiredDocuments beasiswa. Idempotent: mengembalikan shortlist yang sudah ada tanpa duplikasi.'
+      }
+    }
+  )
 
   // ── POST /api/scholarships (admin only) ──────────────────────────────────────
   .post(

@@ -2,7 +2,7 @@ export * from './User';
 export * from './UserProfile';
 export * from './Document';
 export * from './Scholarship';
-export * from './Pipeline';
+export * from './Shortlist';
 export * from './AIReview';
 export * from './IELTS';
 export * from './Mentor';
