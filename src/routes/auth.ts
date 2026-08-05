@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto'
 import { User } from '../models/User'
 import { getConfig } from '../config'
 import { getResend } from '../lib/resend'
-import { PASSWORD_PATTERN } from '../lib/validation'
+import { passwordIssue } from '../lib/validation'
 
 export const authRoutes = new Elysia({ prefix: '/api/auth' })
   .use(
@@ -15,7 +15,12 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
   )
   .post(
     '/register',
-    async ({ body }) => {
+    async ({ body, set }) => {
+      const issue = passwordIssue(body.password)
+      if (issue) {
+        set.status = 422
+        throw new Error(issue)
+      }
       const exists = await User.findOne({ email: body.email })
       if (exists) throw new Error('Email already registered')
       await User.create({
@@ -27,13 +32,13 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     {
       body: t.Object({
         email: t.String({ format: 'email' }),
-        password: t.String({ minLength: 8, pattern: PASSWORD_PATTERN })
+        password: t.String()
       }),
       response: t.Object({ success: t.Boolean(), message: t.String() }),
       detail: {
         tags: ['Auth'],
         summary: 'Register user baru',
-        description: 'Mendaftarkan pengguna baru. Email harus unik, password minimal 8 karakter dengan kombinasi huruf besar dan kecil.'
+        description: 'Mendaftarkan pengguna baru. Email harus unik, password minimal 8 karakter dengan kombinasi huruf besar, huruf kecil, dan angka.'
       }
     }
   )
@@ -104,7 +109,12 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
   )
   .post(
     '/reset-password',
-    async ({ body }) => {
+    async ({ body, set }) => {
+      const issue = passwordIssue(body.newPassword)
+      if (issue) {
+        set.status = 422
+        throw new Error(issue)
+      }
       const user = await User.findOne({ resetPasswordToken: body.token })
       if (!user || !user.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
         throw new Error('Invalid or expired token')
@@ -118,13 +128,13 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     {
       body: t.Object({
         token: t.String(),
-        newPassword: t.String({ minLength: 8, pattern: PASSWORD_PATTERN })
+        newPassword: t.String()
       }),
       response: t.Object({ success: t.Boolean(), message: t.String() }),
       detail: {
         tags: ['Auth'],
         summary: 'Reset password dengan token',
-        description: 'Menetapkan password baru menggunakan token dari email reset. Password minimal 8 karakter dengan kombinasi huruf besar dan kecil.'
+        description: 'Menetapkan password baru menggunakan token dari email reset. Password minimal 8 karakter dengan kombinasi huruf besar, huruf kecil, dan angka.'
       }
     }
   )
