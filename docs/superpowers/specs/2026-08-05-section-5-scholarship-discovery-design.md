@@ -27,7 +27,7 @@ Use two focused library modules and one route module:
 | File | Responsibility | Dependencies |
 | --- | --- | --- |
 | `src/lib/matching.ts` | Pure hard-filter and deterministic ranking logic | None |
-| `src/lib/cvRecommender.ts` | Gemini request, prompt, response parsing, and validation | Config and `fetch` |
+| `src/lib/cvRecommender.ts` | OpenAI GPT request via the Files API and Responses API, prompt, response parsing, and validation | Config and `fetch` |
 | `src/routes/scholarships.ts` | Authentication, database/storage access, HTTP validation, status codes, and response shaping | Libraries and existing models |
 
 The route group follows the established `user.ts` and `documents.ts` pattern: inline `.use(jwt()).derive()` authentication returning `{ userId }`. A shared guard is not introduced because Elysia 1.4.29 does not propagate derived types through `.use()`.
@@ -131,28 +131,32 @@ buildHardFilter(profile) => filter | null
 rankByPreference(profile, scholarship) => { matchScore, reasoning }
 ```
 
-## CV-Based AI Recommendation
+## CV-Based GPT Recommendation
 
 ### `GET /api/scholarships/recommendations/ai`
 
-This endpoint combines the user's latest uploaded CV with their onboarding profile. It is separate from deterministic recommendations so AI latency and failures do not affect the standard experience.
+This endpoint combines the user's latest uploaded CV with their onboarding profile and sends both to OpenAI GPT. It is separate from deterministic recommendations so AI latency and failures do not affect the standard experience.
 
 ### Data flow
 
 1. Load the UserProfile.
 2. Build the same hard filter used by deterministic recommendations.
 3. Query at most 20 eligible scholarships, ordered by nearest deadline.
-4. If there are no candidates, return `200` with an empty list without downloading the CV or calling Gemini.
+4. If there are no candidates, return `200` with an empty list without downloading the CV or calling OpenAI.
 5. Find the user's newest Document with `documentType: 'cv'`, ordered by `createdAt`.
 6. Require the CV to have PDF MIME type.
 7. Download the file bytes directly from the private Supabase `documents` bucket with the service-role client.
-8. Base64-encode the PDF and send it to Gemini as `inlineData`, together with the profile and candidate scholarship data.
-9. Parse and validate Gemini's JSON response.
-10. Map returned IDs back to the queried Scholarship documents.
+8. Upload the PDF to OpenAI with `POST /v1/files` (multipart `FormData`, filename ending in `.pdf`) and capture the returned `file_id`.
+9. Call `POST /v1/responses` with the profile text, the candidate scholarship data, and the uploaded file referenced by `file_id`.
+10. Always delete the uploaded file with `DELETE /v1/files/:id` in a `finally` block, so files do not linger on OpenAI when the call fails.
+11. Parse and validate the JSON output from the response.
+12. Map returned IDs back to the queried Scholarship documents.
 
 The caller cannot supply a storage path or document ID, preventing access to another user's CV.
 
-Gemini must return no more than five entries containing:
+The GPT call uses a fixed model constant, defaulting to `gpt-4.1-mini` with `detail: "low"` to keep PDF page-image input tokens small. The response requests structured JSON output via `text: { format: { type: "json_object" } }`.
+
+GPT must return no more than five entries containing:
 
 ```json
 {
@@ -168,9 +172,9 @@ The endpoint is free and does not debit user tokens. Token billing remains in Se
 
 ### AI configuration
 
-`src/config.ts` gains optional `geminiApiKey: string`, read from `GEMINI_API_KEY` with an empty-string default. The application must continue to start when it is absent; only the AI recommendation endpoint is unavailable.
+`src/config.ts` gains optional `openaiApiKey: string`, read from `OPENAI_API_KEY` with an empty-string default. The application must continue to start when it is absent; only the AI recommendation endpoint is unavailable.
 
-Gemini is called through the native `fetch` API. No new dependency is added.
+OpenAI is called through the native `fetch` API. No new dependency is added.
 
 ### Error mapping
 
@@ -179,9 +183,10 @@ Gemini is called through the native `fetch` API. No new dependency is added.
 | Missing target education or field of study | `400 Complete your profile first` |
 | No uploaded CV | `400 Unggah CV terlebih dahulu untuk rekomendasi berbasis CV` |
 | Latest CV is not a PDF | `400 CV harus berupa file PDF` |
-| Missing `GEMINI_API_KEY` | `503 AI recommendation is unavailable` |
+| Missing `OPENAI_API_KEY` | `503 AI recommendation is unavailable` |
 | Supabase download failure | `502 Failed to download CV` |
-| Gemini HTTP failure, timeout, or invalid JSON | `502 AI recommendation failed` |
+| OpenAI file upload failure | `502 Failed to upload CV` |
+| OpenAI response failure, timeout, or invalid JSON | `502 AI recommendation failed` |
 | No eligible scholarships | `200` with `recommendations: []` |
 
 ## Admin Creation
@@ -209,7 +214,7 @@ Required fields are `name`, `provider`, `country`, `educationLevel`, `fieldOfStu
 
 All endpoints use the existing global JSON error handler. Route handlers set explicit status codes before throwing errors so the global handler preserves `400`, `403`, `404`, `502`, and `503`.
 
-Catalog and deterministic failures must not depend on Gemini configuration. AI failures are explicit rather than silently falling back to deterministic results because the frontend must distinguish retryable service failures from missing user data.
+Catalog and deterministic failures must not depend on OpenAI configuration. AI failures are explicit rather than silently falling back to deterministic results because the frontend must distinguish retryable service failures from missing user data.
 
 ## Testing
 
@@ -229,10 +234,11 @@ Test `src/lib/matching.ts` with plain objects:
 
 Test CV recommendation parsing with an injected or mocked `fetch`:
 
-- valid Gemini JSON is accepted
+- valid GPT JSON output is accepted
 - scores are converted to integers and clamped to 0-100
 - duplicate and unknown IDs are removed
-- malformed JSON and non-2xx responses fail cleanly
+- malformed output and non-2xx responses fail cleanly
+- the uploaded file is deleted even when the response call fails
 - absent API key does not call `fetch`
 
 ### Route smoke checks
@@ -244,8 +250,8 @@ Test CV recommendation parsing with an injected or mocked `fetch`:
 - non-admin creation returns `403`
 - admin creation returns `201`
 - invalid admin body returns `422`
-- AI endpoint handles missing profile, missing CV, non-PDF CV, missing key, empty candidates, storage failure, and Gemini failure
-- one optional live Gemini check using a real uploaded PDF after `GEMINI_API_KEY` is configured
+- AI endpoint handles missing profile, missing CV, non-PDF CV, missing key, empty candidates, storage failure, OpenAI upload failure, and OpenAI response failure
+- one optional live GPT check using a real uploaded PDF after `OPENAI_API_KEY` is configured
 
 Final verification runs `bun test` and `bunx tsc --noEmit`.
 
@@ -255,4 +261,5 @@ Final verification runs `bun test` and `bunx tsc --noEmit`.
 - AI result caching or persistence: add when repeated request cost is measurable.
 - Bulk import and scholarship update/delete: add when admin catalog management is in scope.
 - Token billing for recommendations: add only if product policy changes.
-- Gemini SDK or Files API: add if CV size exceeds practical inline PDF limits or repeated-file reuse matters.
+- GPT file-id reuse or caching: add if repeated AI recommendation cost is measurable.
+- Official OpenAI SDK: add if the raw Responses API calls outgrow plain `fetch`.
