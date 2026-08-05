@@ -69,7 +69,7 @@ async function runReview(
   const user = await User.findById(userId)
   if (!user || user.tokenBalance < 1) {
     set.status = 402
-    throw new Error('Insufficient tokens')
+    throw new Error('You do not have enough tokens to request an AI review.')
   }
 
   let result: ReviewResult
@@ -83,7 +83,7 @@ async function runReview(
     }
     if (!doc.fileType.includes('pdf')) {
       set.status = 400
-      throw new Error('Dokumen harus berupa file PDF')
+      throw new Error('Document must be a PDF file')
     }
     const { data, error } = await getSupabase().storage.from('documents').download(doc.fileUrl)
     if (error || !data) {
@@ -119,7 +119,7 @@ async function runReview(
   )
   if (!updated) {
     set.status = 402
-    throw new Error('Insufficient tokens')
+    throw new Error('You do not have enough tokens to request an AI review.')
   }
 
   await Transaction.create({
@@ -149,7 +149,7 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
     const sub = verified && typeof verified !== 'boolean' ? verified.sub : null
     if (!sub) {
       set.status = 401
-      throw new Error('Unauthorized')
+      throw new Error('Authentication required. Please sign in.')
     }
     return { userId: sub as string }
   })

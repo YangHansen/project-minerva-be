@@ -58,7 +58,7 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
     const sub = verified && typeof verified !== 'boolean' ? verified.sub : null
     if (!sub) {
       set.status = 401
-      throw new Error('Unauthorized')
+      throw new Error('Authentication required. Please sign in.')
     }
     return { userId: sub as string }
   })
@@ -108,7 +108,7 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
       return {
         success: true,
         recommendations: [],
-        message: 'Lengkapi profil onboarding Anda terlebih dahulu untuk mendapatkan rekomendasi.'
+        message: 'Complete your onboarding profile first to get recommendations.'
       }
     }
 
@@ -165,7 +165,7 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
 
     if (!hardFilter) {
       set.status = 400
-      throw new Error('Complete your profile first')
+      throw new Error('Complete your onboarding profile first.')
     }
 
     // Require API key before any I/O
@@ -186,12 +186,12 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
 
     if (!cvDoc) {
       set.status = 400
-      throw new Error('Unggah CV terlebih dahulu untuk rekomendasi berbasis CV')
+      throw new Error('Upload a CV first to get CV-based recommendations')
     }
 
     if (!cvDoc.fileType.includes('pdf') && cvDoc.fileType !== 'application/pdf') {
       set.status = 400
-      throw new Error('CV harus berupa file PDF')
+      throw new Error('CV must be a PDF file')
     }
 
     // Download from Supabase (service-role client — private bucket)
@@ -313,7 +313,7 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
       const user = await User.findById(userId)
       if (!user || user.role !== 'admin') {
         set.status = 403
-        throw new Error('Forbidden')
+        throw new Error('You do not have permission to add scholarships.')
       }
       await Scholarship.create(body)
       set.status = 201

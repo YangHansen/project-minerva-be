@@ -20,7 +20,7 @@ export const bookingRoutes = new Elysia({ prefix: '/api/bookings' })
     const sub = verified && typeof verified !== 'boolean' ? verified.sub : null
     if (!sub) {
       set.status = 401
-      throw new Error('Unauthorized')
+      throw new Error('Authentication required. Please sign in.')
     }
     return { userId: sub as string }
   })
@@ -78,7 +78,7 @@ export const bookingRoutes = new Elysia({ prefix: '/api/bookings' })
       )
       if (!user) {
         set.status = 402
-        throw new Error('Insufficient token balance. Please top up first.')
+        throw new Error('You do not have enough tokens for this booking. Please top up first.')
       }
 
       // 8. Create booking (E11000 race guard -> refund)

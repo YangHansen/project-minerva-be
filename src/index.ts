@@ -17,6 +17,7 @@ import { mentorRoutes } from './routes/mentors'
 import { bookingRoutes } from './routes/bookings'
 import { transactionRoutes } from './routes/transactions'
 import { scanAndSendReminders } from './lib/reminder'
+import { friendlyValidationMessage } from './lib/validation'
 
 const config = getConfig()
 
@@ -56,20 +57,26 @@ const app = new Elysia()
     })
   )
   .onError(({ code, error, set }) => {
+    const explicitStatus = typeof set.status === 'number' && set.status >= 400 ? set.status : null
     const status =
-      typeof set.status === 'number' && set.status >= 400
-        ? set.status
+      explicitStatus !== null
+        ? explicitStatus
         : code === 'NOT_FOUND'
           ? 404
           : code === 'VALIDATION'
             ? 422
             : 500
-    const message =
-      code === 'VALIDATION' && Array.isArray((error as any).all) && (error as any).all.length > 0
-        ? (error as any).all[0].message
-        : error instanceof Error
+    const validationError = code === 'VALIDATION' && Array.isArray((error as any).all)
+      ? (error as any).all[0]
+      : null
+    const message = validationError
+      ? friendlyValidationMessage(validationError)
+      : code === 'NOT_FOUND'
+        ? 'Endpoint not found.'
+        : explicitStatus !== null && error instanceof Error
           ? error.message
-          : 'Unexpected error'
+          : 'Something went wrong. Please try again.'
+    if (!validationError && code !== 'NOT_FOUND' && explicitStatus === null) console.error('[error]', error)
     return new Response(JSON.stringify({ success: false, message }), {
       status,
       headers: { 'content-type': 'application/json' }

@@ -22,7 +22,10 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
         throw new Error(issue)
       }
       const exists = await User.findOne({ email: body.email })
-      if (exists) throw new Error('Email already registered')
+      if (exists) {
+        set.status = 409
+        throw new Error('Email is already registered.')
+      }
       await User.create({
         email: body.email,
         password: await Bun.password.hash(body.password)
@@ -44,10 +47,11 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
   )
   .post(
     '/login',
-    async ({ body, jwt }) => {
+    async ({ body, jwt, set }) => {
       const user = await User.findOne({ email: body.email })
       if (!user || !(await Bun.password.verify(body.password, user.password))) {
-        throw new Error('Invalid email or password')
+        set.status = 401
+        throw new Error('Email or password is incorrect.')
       }
       return {
         success: true,
@@ -145,7 +149,8 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       }
       const user = await User.findOne({ resetPasswordToken: params.token })
       if (!user || !user.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
-        throw new Error('Invalid or expired token')
+        set.status = 400
+        throw new Error('This password reset link is invalid or has expired.')
       }
       user.password = await Bun.password.hash(body.newPassword)
       user.resetPasswordToken = null
@@ -176,7 +181,8 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       }
       const user = await User.findOne({ resetPasswordToken: body.token })
       if (!user || !user.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
-        throw new Error('Invalid or expired token')
+        set.status = 400
+        throw new Error('This password reset token is invalid or has expired.')
       }
       user.password = await Bun.password.hash(body.newPassword)
       user.resetPasswordToken = null

@@ -78,7 +78,7 @@ export const userRoutes = new Elysia({ prefix: '/api/user' })
     const sub = verified && typeof verified !== 'boolean' ? verified.sub : null
     if (!sub) {
       set.status = 401
-      throw new Error('Unauthorized')
+      throw new Error('Authentication required. Please sign in.')
     }
     return { userId: sub as string }
   })
@@ -104,9 +104,12 @@ export const userRoutes = new Elysia({ prefix: '/api/user' })
   )
   .get(
     '/profile',
-    async ({ userId }) => {
+    async ({ userId, set }) => {
       const profile = await UserProfile.findOne({ userId })
-      if (!profile) throw new Error('Profile not found')
+      if (!profile) {
+        set.status = 404
+        throw new Error('Profile not found.')
+      }
       return { success: true, profile: JSON.parse(JSON.stringify(profile)) }
     },
     {

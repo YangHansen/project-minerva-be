@@ -39,16 +39,19 @@ export const documentRoutes = new Elysia({ prefix: '/api/documents' })
     const sub = verified && typeof verified !== 'boolean' ? verified.sub : null
     if (!sub) {
       set.status = 401
-      throw new Error('Unauthorized')
+      throw new Error('Authentication required. Please sign in.')
     }
     return { userId: sub as string }
   })
   .post(
     '/upload-url',
-    async ({ body, userId }) => {
+    async ({ body, userId, set }) => {
       const path = `${userId}/${body.fileName}`
       const { data, error } = await getSupabase().storage.from('documents').createSignedUploadUrl(path)
-      if (error) throw new Error(error.message)
+      if (error) {
+        set.status = 502
+        throw new Error('Failed to create upload URL')
+      }
       return { success: true, uploadUrl: data.signedUrl, path }
     },
     {

@@ -37,7 +37,7 @@ export const shortlistRoutes = new Elysia({ prefix: '/api/shortlists' })
     const sub = verified && typeof verified !== 'boolean' ? verified.sub : null
     if (!sub) {
       set.status = 401
-      throw new Error('Unauthorized')
+      throw new Error('Authentication required. Please sign in.')
     }
     return { userId: sub as string }
   })
@@ -129,6 +129,10 @@ export const shortlistRoutes = new Elysia({ prefix: '/api/shortlists' })
       if (body.documentId && params.itemType !== 'cv' && params.itemType !== 'essay') {
         set.status = 422
         throw new Error('documentId only allowed for cv and essay items')
+      }
+      if (body.documentId && !isValidObjectId(body.documentId)) {
+        set.status = 422
+        throw new Error('Invalid document id.')
       }
       if (body.isCompleted !== undefined) item.isCompleted = body.isCompleted
       if (body.documentId !== undefined) {

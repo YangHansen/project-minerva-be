@@ -26,7 +26,7 @@ export const transactionRoutes = new Elysia({ prefix: '/api/transactions' })
     const sub = verified && typeof verified !== 'boolean' ? verified.sub : null
     if (!sub) {
       set.status = 401
-      throw new Error('Unauthorized')
+      throw new Error('Authentication required. Please sign in.')
     }
     return { userId: sub as string }
   })
@@ -42,7 +42,7 @@ export const transactionRoutes = new Elysia({ prefix: '/api/transactions' })
       const PAYMENT_METHODS = ['bank_transfer', 'e_wallet', 'credit_card']
       if (!PAYMENT_METHODS.includes(body.paymentMethod)) {
         set.status = 422
-        throw new Error('Invalid payment method.')
+        throw new Error('Please choose a valid payment method.')
       }
       const user = await User.findByIdAndUpdate(
         { _id: userId },

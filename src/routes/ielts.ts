@@ -19,7 +19,7 @@ export const ieltsRoutes = new Elysia({ prefix: '/api/ielts' })
     const sub = verified && typeof verified !== 'boolean' ? verified.sub : null
     if (!sub) {
       set.status = 401
-      throw new Error('Unauthorized')
+      throw new Error('Authentication required. Please sign in.')
     }
     return { userId: sub as string }
   })
