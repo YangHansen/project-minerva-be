@@ -16,6 +16,7 @@ import { ieltsRoutes } from './routes/ielts'
 import { mentorRoutes } from './routes/mentors'
 import { bookingRoutes } from './routes/bookings'
 import { transactionRoutes } from './routes/transactions'
+import { scanAndSendReminders } from './lib/reminder'
 
 const config = getConfig()
 
@@ -86,6 +87,11 @@ const app = new Elysia()
   .use(bookingRoutes)
   .use(transactionRoutes)
   .listen(3000)
+
+// ponytail: Bun cron is UTC; 0 19 = 19:00 UTC. Shift the hour if you need local 7 PM.
+Bun.cron('0 19 * * *', () => {
+  scanAndSendReminders().catch(console.error)
+})
 
 console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`)
 
