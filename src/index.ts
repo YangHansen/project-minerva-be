@@ -13,6 +13,8 @@ import { scholarshipRoutes } from './routes/scholarships'
 import { shortlistRoutes } from './routes/shortlists'
 import { aiRoutes } from './routes/ai'
 import { ieltsRoutes } from './routes/ielts'
+import { mentorRoutes } from './routes/mentors'
+import { bookingRoutes } from './routes/bookings'
 
 const config = getConfig()
 
@@ -60,7 +62,12 @@ const app = new Elysia()
           : code === 'VALIDATION'
             ? 422
             : 500
-    const message = error instanceof Error ? error.message : 'Unexpected error'
+    const message =
+      code === 'VALIDATION' && Array.isArray((error as any).all) && (error as any).all.length > 0
+        ? (error as any).all[0].message
+        : error instanceof Error
+          ? error.message
+          : 'Unexpected error'
     return new Response(JSON.stringify({ success: false, message }), {
       status,
       headers: { 'content-type': 'application/json' }
@@ -74,6 +81,8 @@ const app = new Elysia()
   .use(shortlistRoutes)
   .use(aiRoutes)
   .use(ieltsRoutes)
+  .use(mentorRoutes)
+  .use(bookingRoutes)
   .listen(3000)
 
 console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`)

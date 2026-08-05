@@ -19,5 +19,7 @@ const BookingSchema = new Schema({
   meetingLink: { type: String, default: null }
 }, { timestamps: true });
 
+BookingSchema.index({ mentorId: 1, dateTime: 1 }, { unique: true });
+
 export const Mentor = models.Mentor || model('Mentor', MentorSchema);
 export const Booking = models.Booking || model('Booking', BookingSchema);
