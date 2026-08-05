@@ -15,6 +15,7 @@ import { aiRoutes } from './routes/ai'
 import { ieltsRoutes } from './routes/ielts'
 import { mentorRoutes } from './routes/mentors'
 import { bookingRoutes } from './routes/bookings'
+import { transactionRoutes } from './routes/transactions'
 
 const config = getConfig()
 
@@ -83,6 +84,7 @@ const app = new Elysia()
   .use(ieltsRoutes)
   .use(mentorRoutes)
   .use(bookingRoutes)
+  .use(transactionRoutes)
   .listen(3000)
 
 console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`)
