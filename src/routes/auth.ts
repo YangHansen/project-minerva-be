@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto'
 import { User } from '../models/User'
 import { getConfig } from '../config'
 import { getResend } from '../lib/resend'
+import { PASSWORD_PATTERN } from '../lib/validation'
 
 export const authRoutes = new Elysia({ prefix: '/api/auth' })
   .use(
@@ -26,13 +27,13 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     {
       body: t.Object({
         email: t.String({ format: 'email' }),
-        password: t.String({ minLength: 8 })
+        password: t.String({ minLength: 8, pattern: PASSWORD_PATTERN })
       }),
       response: t.Object({ success: t.Boolean(), message: t.String() }),
       detail: {
         tags: ['Auth'],
         summary: 'Register user baru',
-        description: 'Mendaftarkan pengguna baru. Email harus unik, password minimal 8 karakter.'
+        description: 'Mendaftarkan pengguna baru. Email harus unik, password minimal 8 karakter dengan kombinasi huruf besar dan kecil.'
       }
     }
   )
@@ -110,13 +111,13 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     {
       body: t.Object({
         token: t.String(),
-        newPassword: t.String({ minLength: 8 })
+        newPassword: t.String({ minLength: 8, pattern: PASSWORD_PATTERN })
       }),
       response: t.Object({ success: t.Boolean(), message: t.String() }),
       detail: {
         tags: ['Auth'],
         summary: 'Reset password dengan token',
-        description: 'Menetapkan password baru menggunakan token dari email reset. Password minimal 8 karakter.'
+        description: 'Menetapkan password baru menggunakan token dari email reset. Password minimal 8 karakter dengan kombinasi huruf besar dan kecil.'
       }
     }
   )

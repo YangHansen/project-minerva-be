@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { getConfig } from '../config';
+import { MAX_DOCUMENT_BYTES } from './validation';
 
 let instance: SupabaseClient | null = null;
 
@@ -18,4 +19,10 @@ export async function ensureDocumentsBucket() {
     if (error) throw new Error(`Failed to create "documents" bucket: ${error.message}`);
     console.log('Supabase bucket "documents" created (private)');
   }
+  // ponytail: authoritative 2MB cap lives on the bucket (files bypass the API via signed PUT)
+  const { error } = await supabase.storage.updateBucket('documents', {
+    public: false,
+    fileSizeLimit: MAX_DOCUMENT_BYTES
+  });
+  if (error) throw new Error(`Failed to set "documents" size limit: ${error.message}`);
 }

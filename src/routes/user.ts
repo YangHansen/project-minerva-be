@@ -11,21 +11,21 @@ import { UserProfile } from '../models/UserProfile'
 import { getConfig } from '../config'
 
 const onboardingFields = {
-  name: t.String(),
-  age: t.Optional(t.Number()),
+  name: t.String({ minLength: 1 }),
+  age: t.Optional(t.Number({ minimum: 0, maximum: 120 })),
   country: t.Optional(t.String()),
   destinationCountry: t.Optional(t.String()),
   currentEducationLevel: t.Optional(t.String()),
   targetEducationLevel: t.Optional(t.Union([t.Literal("Master's"), t.Literal('Doctoral')])),
   fieldOfStudy: t.Optional(t.String()),
-  gpa: t.Optional(t.Number()),
-  ieltsScore: t.Optional(t.Number()),
-  toeflScore: t.Optional(t.Number()),
-  topikScore: t.Optional(t.Number()),
-  workExperienceYears: t.Optional(t.Number()),
+  gpa: t.Optional(t.Number({ minimum: 0, maximum: 4 })),
+  ieltsScore: t.Optional(t.Number({ minimum: 0, maximum: 9 })),
+  toeflScore: t.Optional(t.Number({ minimum: 0, maximum: 120 })),
+  topikScore: t.Optional(t.Number({ minimum: 0, maximum: 6 })),
+  workExperienceYears: t.Optional(t.Number({ minimum: 0 })),
   scholarshipType: t.Optional(t.String()),
   fundingPreference: t.Optional(t.String()),
-  enrollmentYear: t.Optional(t.Number()),
+  enrollmentYear: t.Optional(t.Number({ minimum: 2000, maximum: 2100 })),
   emailNotificationsEnabled: t.Optional(t.Boolean())
 }
 

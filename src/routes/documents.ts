@@ -52,7 +52,7 @@ export const documentRoutes = new Elysia({ prefix: '/api/documents' })
       return { success: true, uploadUrl: data.signedUrl, path }
     },
     {
-      body: t.Object({ fileName: t.String() }),
+      body: t.Object({ fileName: t.String({ minLength: 1 }) }),
       response: t.Object({ success: t.Boolean(), uploadUrl: t.String(), path: t.String() }),
       detail: {
         ...protectedDetail,
@@ -75,7 +75,7 @@ export const documentRoutes = new Elysia({ prefix: '/api/documents' })
     },
     {
       body: t.Object({
-        fileName: t.String(),
+        fileName: t.String({ minLength: 1 }),
         path: t.String(),
         fileType: t.String(),
         documentType: t.Enum(DOCUMENT_TYPE_ENUM)
