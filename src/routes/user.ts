@@ -155,11 +155,10 @@ export const userRoutes = new Elysia({ prefix: '/api/user' })
       }
     }
     // ponytail: full aggregation (kept, commented out — re-enable when modules land):
-    // const [user, profile, shortlists, reviews, submissions, bookings] = await Promise.all([
+    // const [user, profile, shortlists, submissions, bookings] = await Promise.all([
     //   User.findById(userId),
     //   UserProfile.findOne({ userId }),
     //   Shortlist.find({ userId }),
-    //   AIReview.find({ userId }).sort({ createdAt: -1 }),
     //   IELTSSubmission.find({ userId }),
     //   Booking.find({ userId, status: 'approved', dateTime: { $gte: new Date() } }).sort({ dateTime: 1 }).limit(1)
     // ])
@@ -183,8 +182,6 @@ export const userRoutes = new Elysia({ prefix: '/api/user' })
     // const checklistOfSelected = selectedShortlist?.items ?? []
     // const completed = checklistOfSelected.filter((c) => c.isCompleted).length
     //
-    // const cvReview = reviews.find((r) => r.reviewType === 'cv')
-    // const essayReview = reviews.find((r) => r.reviewType === 'essay')
     // const avgIelts = submissions.length
     //   ? submissions.reduce((sum, s) => sum + (s.score / s.totalQuestions) * 9, 0) / submissions.length
     //   : 0
@@ -208,8 +205,6 @@ export const userRoutes = new Elysia({ prefix: '/api/user' })
     //             percentage: Math.round((completed / checklistOfSelected.length) * 100)
     //           }
     //         : null,
-    //     latestCvReviewScore: cvReview?.score ?? null,
-    //     latestEssayReviewScore: essayReview?.score ?? null,
     //     ieltsProgress: submissions.length ? { completedExercises: submissions.length, averageScore: Math.round(avgIelts * 10) / 10 } : null,
     //     nextBooking: nextBooking
     //       ? { mentorName: mentor?.name ?? null, dateTime: nextBooking.dateTime, status: nextBooking.status }

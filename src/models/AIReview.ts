@@ -6,7 +6,6 @@ const AIReviewSchema = new Schema({
   targetScholarshipId: { type: Schema.Types.ObjectId, ref: 'Scholarship' }, 
   essayText: { type: String }, 
   reviewType: { type: String, enum: ['cv', 'essay', 'personal_statement', 'study_plan'], required: true },
-  score: { type: Number, default: 0 },
   feedback: {
     completeness: { type: String },
     formatting: { type: String },
