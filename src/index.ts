@@ -12,6 +12,7 @@ import { documentRoutes } from './routes/documents'
 import { scholarshipRoutes } from './routes/scholarships'
 import { shortlistRoutes } from './routes/shortlists'
 import { aiRoutes } from './routes/ai'
+import { ieltsRoutes } from './routes/ielts'
 
 const config = getConfig()
 
@@ -72,6 +73,7 @@ const app = new Elysia()
   .use(scholarshipRoutes)
   .use(shortlistRoutes)
   .use(aiRoutes)
+  .use(ieltsRoutes)
   .listen(3000)
 
 console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`)
