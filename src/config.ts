@@ -5,6 +5,7 @@ export interface AppConfig {
   resendApiKey: string;
   jwtSecret: string;
   openaiApiKey: string;
+  frontendUrl: string;
 }
 
 const REQUIRED: Record<string, keyof AppConfig> = {
@@ -26,5 +27,7 @@ export function getConfig(env: Record<string, string | undefined> = process.env)
   }
   // Optional — AI recommendation endpoint unavailable when absent
   config.openaiApiKey = env['OPENAI_API_KEY'] ?? '';
+  // Optional — base URL for password-reset links in emails
+  config.frontendUrl = (env['FRONTEND_URL'] ?? 'http://localhost:5173').replace(/\/$/, '');
   return config;
 }
