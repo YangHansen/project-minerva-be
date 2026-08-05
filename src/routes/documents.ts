@@ -12,6 +12,25 @@ const DOCUMENT_TYPE_ENUM = {
   family_relationship_proof: 'family_relationship_proof', citizenship_proof: 'citizenship_proof'
 } as const
 
+const documentResponse = t.Object({
+  _id: t.String(),
+  userId: t.String(),
+  fileName: t.String(),
+  fileUrl: t.String(),
+  fileType: t.String(),
+  documentType: t.String(),
+  isApostilled: t.Boolean(),
+  status: t.String(),
+  createdAt: t.String(),
+  updatedAt: t.String(),
+  __v: t.Number()
+})
+
+const protectedDetail = {
+  tags: ['Documents'],
+  security: [{ bearerAuth: [] }]
+}
+
 export const documentRoutes = new Elysia({ prefix: '/api/documents' })
   .use(jwt({ name: 'jwt', secret: getConfig().jwtSecret }))
   .derive(async ({ headers, jwt, set }) => {
@@ -32,7 +51,15 @@ export const documentRoutes = new Elysia({ prefix: '/api/documents' })
       if (error) throw new Error(error.message)
       return { success: true, uploadUrl: data.signedUrl, path }
     },
-    { body: t.Object({ fileName: t.String() }) }
+    {
+      body: t.Object({ fileName: t.String() }),
+      response: t.Object({ success: t.Boolean(), uploadUrl: t.String(), path: t.String() }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Buat signed upload URL',
+        description: 'Membuat signed URL untuk mengunggah file langsung ke Supabase Storage. Path: {userId}/{fileName}.'
+      }
+    }
   )
   .post(
     '/upload',
@@ -44,7 +71,7 @@ export const documentRoutes = new Elysia({ prefix: '/api/documents' })
         fileType: body.fileType,
         documentType: body.documentType
       })
-      return { success: true, document }
+      return { success: true, document: JSON.parse(JSON.stringify(document)) }
     },
     {
       body: t.Object({
@@ -52,17 +79,37 @@ export const documentRoutes = new Elysia({ prefix: '/api/documents' })
         path: t.String(),
         fileType: t.String(),
         documentType: t.Enum(DOCUMENT_TYPE_ENUM)
-      })
+      }),
+      response: t.Object({ success: t.Boolean(), document: documentResponse }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Simpan metadata dokumen',
+        description: 'Menyimpan metadata dokumen setelah file berhasil diunggah ke Supabase.'
+      }
     }
   )
-  .get('/', async ({ userId }) => {
-    const documents = await Document.find({ userId }).sort({ createdAt: -1 })
-    // ponytail: signed URL per request, 1h expiry; no caching
-    const withUrls = await Promise.all(
-      documents.map(async (doc) => {
-        const { data } = await getSupabase().storage.from('documents').createSignedUrl(doc.fileUrl, 3600)
-        return { ...doc.toObject(), url: data?.signedUrl ?? null }
-      })
-    )
-    return { success: true, documents: withUrls }
-  })
+  .get(
+    '/',
+    async ({ userId }) => {
+      const documents = await Document.find({ userId }).sort({ createdAt: -1 })
+      // ponytail: signed URL per request, 1h expiry; no caching
+      const withUrls = await Promise.all(
+        documents.map(async (doc) => {
+          const { data } = await getSupabase().storage.from('documents').createSignedUrl(doc.fileUrl, 3600)
+          return { ...JSON.parse(JSON.stringify(doc.toObject())), url: data?.signedUrl ?? null }
+        })
+      )
+      return { success: true, documents: withUrls }
+    },
+    {
+      response: t.Object({
+        success: t.Boolean(),
+        documents: t.Array(t.Composite([documentResponse, t.Object({ url: t.Nullable(t.String()) })]))
+      }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Ambil daftar dokumen pengguna',
+        description: 'Mengambil seluruh dokumen pengguna terautentikasi dengan signed URL unduh (berlaku 1 jam).'
+      }
+    }
+  )

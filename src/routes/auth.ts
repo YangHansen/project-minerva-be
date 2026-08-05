@@ -27,7 +27,13 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       body: t.Object({
         email: t.String({ format: 'email' }),
         password: t.String({ minLength: 8 })
-      })
+      }),
+      response: t.Object({ success: t.Boolean(), message: t.String() }),
+      detail: {
+        tags: ['Auth'],
+        summary: 'Register user baru',
+        description: 'Mendaftarkan pengguna baru. Email harus unik, password minimal 8 karakter.'
+      }
     }
   )
   .post(
@@ -47,7 +53,17 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       body: t.Object({
         email: t.String({ format: 'email' }),
         password: t.String()
-      })
+      }),
+      response: t.Object({
+        success: t.Boolean(),
+        token: t.String(),
+        user: t.Object({ id: t.String(), email: t.String(), role: t.String() })
+      }),
+      detail: {
+        tags: ['Auth'],
+        summary: 'Login dan ambil JWT token',
+        description: 'Memverifikasi kredensial dan mengembalikan token Bearer untuk endpoint yang dilindungi.'
+      }
     }
   )
   .post(
@@ -68,7 +84,15 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       }
       return { success: true, message: 'Password reset email sent successfully' }
     },
-    { body: t.Object({ email: t.String({ format: 'email' }) }) }
+    {
+      body: t.Object({ email: t.String({ format: 'email' }) }),
+      response: t.Object({ success: t.Boolean(), message: t.String() }),
+      detail: {
+        tags: ['Auth'],
+        summary: 'Kirim token reset password',
+        description: 'Selalu mengembalikan sukses meskipun email tidak terdaftar (anti-enumerasi akun). Token dikirim via email dan berlaku 1 jam.'
+      }
+    }
   )
   .post(
     '/reset-password',
@@ -87,6 +111,12 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       body: t.Object({
         token: t.String(),
         newPassword: t.String({ minLength: 8 })
-      })
+      }),
+      response: t.Object({ success: t.Boolean(), message: t.String() }),
+      detail: {
+        tags: ['Auth'],
+        summary: 'Reset password dengan token',
+        description: 'Menetapkan password baru menggunakan token dari email reset. Password minimal 8 karakter.'
+      }
     }
   )

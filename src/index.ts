@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia'
 import { cors } from '@elysiajs/cors'
 import { jwt } from '@elysiajs/jwt'
+import { swagger } from '@elysiajs/swagger'
 import { getConfig } from './config'
 import { connectDB } from './lib/db'
 import { getSupabase, ensureDocumentsBucket } from './lib/supabase'
@@ -8,6 +9,7 @@ import { getResend } from './lib/resend'
 import { authRoutes } from './routes/auth'
 import { userRoutes } from './routes/user'
 import { documentRoutes } from './routes/documents'
+import { scholarshipRoutes } from './routes/scholarships'
 
 const config = getConfig()
 
@@ -19,6 +21,27 @@ export const resend = getResend()
 
 const app = new Elysia()
   .use(cors({ origin: 'http://localhost:5173' }))
+  .use(
+    swagger({
+      path: '/docs',
+      documentation: {
+        info: {
+          title: 'Project Minerva API',
+          description: 'Dokumentasi API backend Project Minerva (as-built).',
+          version: '1.0.0'
+        },
+        components: {
+          securitySchemes: {
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'JWT'
+            }
+          }
+        }
+      }
+    })
+  )
   .use(
     jwt({
       name: 'jwt',
@@ -44,6 +67,7 @@ const app = new Elysia()
   .use(authRoutes)
   .use(userRoutes)
   .use(documentRoutes)
+  .use(scholarshipRoutes)
   .listen(3000)
 
 console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`)

@@ -4,6 +4,7 @@ export interface AppConfig {
   supabaseServiceRoleKey: string;
   resendApiKey: string;
   jwtSecret: string;
+  openaiApiKey: string;
 }
 
 const REQUIRED: Record<string, keyof AppConfig> = {
@@ -23,5 +24,7 @@ export function getConfig(env: Record<string, string | undefined> = process.env)
   for (const [envKey, configKey] of Object.entries(REQUIRED)) {
     config[configKey] = env[envKey]!;
   }
+  // Optional — AI recommendation endpoint unavailable when absent
+  config.openaiApiKey = env['OPENAI_API_KEY'] ?? '';
   return config;
 }
