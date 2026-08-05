@@ -71,8 +71,9 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     '/forgot-password',
     async ({ body }) => {
       const user = await User.findOne({ email: body.email })
+      let token: string | null = null
       if (user) {
-        const token = randomBytes(32).toString('hex')
+        token = randomBytes(32).toString('hex')
         user.resetPasswordToken = token
         user.resetPasswordExpires = new Date(Date.now() + 3600_000)
         await user.save()
@@ -83,11 +84,17 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
           text: `Your reset token: ${token}`
         })
       }
-      return { success: true, message: 'Password reset email sent successfully' }
+      // ponytail: token in response is for manual testing only — leaks whether the
+      // email exists (defeats anti-enumeration). Remove before production.
+      return { success: true, message: 'Password reset email sent successfully', ...(token ? { token } : {}) }
     },
     {
       body: t.Object({ email: t.String({ format: 'email' }) }),
-      response: t.Object({ success: t.Boolean(), message: t.String() }),
+      response: t.Object({
+        success: t.Boolean(),
+        message: t.String(),
+        token: t.Optional(t.String())
+      }),
       detail: {
         tags: ['Auth'],
         summary: 'Kirim token reset password',
