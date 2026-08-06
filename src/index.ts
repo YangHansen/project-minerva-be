@@ -13,6 +13,7 @@ import { userRoutes } from './routes/user'
 import { documentRoutes } from './routes/documents'
 import { scholarshipRoutes } from './routes/scholarships'
 import { shortlistRoutes } from './routes/shortlists'
+import { wishlistRoutes } from './routes/wishlists'
 import { aiRoutes } from './routes/ai'
 import { ieltsRoutes } from './routes/ielts'
 import { mentorRoutes } from './routes/mentors'
@@ -128,6 +129,7 @@ export const app = new Elysia()
   .use(documentRoutes)
   .use(scholarshipRoutes)
   .use(shortlistRoutes)
+  .use(wishlistRoutes)
   .use(aiRoutes)
   .use(ieltsRoutes)
   .use(mentorRoutes)

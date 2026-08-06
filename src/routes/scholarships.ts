@@ -10,6 +10,7 @@ import { buildHardFilter, rankByPreference } from '../lib/matching'
 import { getAiRecommendations } from '../lib/cvRecommender'
 import { getConfig } from '../config'
 import { Shortlist, buildChecklistItems } from '../models/Shortlist'
+import { Wishlist } from '../models/Wishlist'
 
 // Inline per Elysia/TS limitation: imported t.Object response schemas break handler return inference
 const shortlistResponse = t.Object({
@@ -71,7 +72,7 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
   // ── GET /api/scholarships ────────────────────────────────────────────────────
   .get(
     '/',
-    async ({ query }) => {
+    async ({ query, userId }) => {
       const filter: Record<string, unknown> = {}
 
       if (query.search) {
@@ -84,9 +85,13 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
       if (query.fundingType)    filter['fundingType']    = query.fundingType
 
       const scholarships = await Scholarship.find(filter).sort({ deadline: 1 })
+      const saved = new Set(
+        (await Wishlist.find({ userId, scholarshipId: { $in: scholarships.map((s) => s._id) } }))
+          .map((w) => String(w.scholarshipId))
+      )
       return {
         success: true,
-        scholarships: scholarships.map(toListFields)
+        scholarships: scholarships.map((sch) => ({ ...toListFields(sch), isSaved: saved.has(String(sch._id)) }))
       }
     },
     {
@@ -272,7 +277,7 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
   })
 
   // ── GET /api/scholarships/:id ────────────────────────────────────────────────
-  .get('/:id', async ({ params, set }) => {
+  .get('/:id', async ({ params, userId, set }) => {
     if (!isValidObjectId(params.id)) {
       set.status = 400
       throw new Error('Invalid scholarship id')
@@ -282,7 +287,8 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
       set.status = 404
       throw new Error('Scholarship not found')
     }
-    return { success: true, scholarship }
+    const isSaved = await Wishlist.exists({ userId, scholarshipId: params.id })
+    return { success: true, isSaved: !!isSaved, scholarship }
   }, {
     detail: {
       ...protectedDetail,
