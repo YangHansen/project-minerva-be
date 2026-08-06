@@ -116,7 +116,9 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
 
     const matchProfile = {
       destinationCountry: profile?.destinationCountry,
-      fundingPreference: profile?.fundingPreference
+      fundingPreference: profile?.fundingPreference,
+      gpa: profile?.gpa,
+      ieltsScore: profile?.ieltsScore
     }
 
     const ranked = candidates
@@ -124,10 +126,13 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
         const { matchScore, reasoning } = rankByPreference(matchProfile, {
           country: sch.country,
           fundingType: sch.fundingType,
-          deadline: sch.deadline
+          deadline: sch.deadline,
+          minGpa: sch.minGpa,
+          minIeltsScore: sch.minIeltsScore
         })
         return { sch, matchScore, reasoning }
       })
+      .filter((x) => x.matchScore >= 0) // Filter out heavily penalized ones
       .sort((a, b) => {
         if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore
         return (a.sch.deadline?.getTime() ?? 0) - (b.sch.deadline?.getTime() ?? 0)

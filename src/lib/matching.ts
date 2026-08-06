@@ -11,6 +11,8 @@ export interface MatchProfile {
   fieldOfStudy?: string | null;
   destinationCountry?: string | null;
   fundingPreference?: string | null;
+  gpa?: number | null;
+  ieltsScore?: number | null;
 }
 
 export interface MatchScholarship {
@@ -19,6 +21,8 @@ export interface MatchScholarship {
   country?: string | null;
   fundingType?: string | null;
   deadline?: Date | null;
+  minGpa?: number | null;
+  minIeltsScore?: number | null;
 }
 
 /**
@@ -84,6 +88,17 @@ export function rankByPreference(
   ) {
     score += 40;
     parts.push(`Pendanaan ${scholarship.fundingType.trim()}.`);
+  }
+
+  // Deduct points heavily if GPA or IELTS is below requirement
+  if (scholarship.minGpa && (profile.gpa ?? 0) < scholarship.minGpa) {
+    score -= 100;
+    parts.push(`GPA kurang dari minimum (${scholarship.minGpa}).`);
+  }
+
+  if (scholarship.minIeltsScore && (profile.ieltsScore ?? 0) < scholarship.minIeltsScore) {
+    score -= 100;
+    parts.push(`IELTS kurang dari minimum (${scholarship.minIeltsScore}).`);
   }
 
   return {

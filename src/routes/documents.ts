@@ -44,50 +44,44 @@ export const documentRoutes = new Elysia({ prefix: '/api/documents' })
     return { userId: sub as string }
   })
   .post(
-    '/upload-url',
+    '/upload',
     async ({ body, userId, set }) => {
-      const path = `${userId}/${body.fileName}`
-      const { data, error } = await getSupabase().storage.from('documents').createSignedUploadUrl(path)
+      const file = body.file
+      const path = `${userId}/${file.name}`
+      
+      const arrayBuffer = await file.arrayBuffer()
+      const { error } = await getSupabase().storage.from('documents').upload(path, arrayBuffer, {
+        contentType: file.type,
+        upsert: true
+      })
+      
       if (error) {
         set.status = 502
-        throw new Error('Failed to create upload URL')
+        throw new Error('Failed to upload file to storage')
       }
-      return { success: true, uploadUrl: data.signedUrl, path }
-    },
-    {
-      body: t.Object({ fileName: t.String({ minLength: 1 }) }),
-      response: t.Object({ success: t.Boolean(), uploadUrl: t.String(), path: t.String() }),
-      detail: {
-        ...protectedDetail,
-        summary: 'Buat signed upload URL',
-        description: 'Membuat signed URL untuk mengunggah file langsung ke Supabase Storage. Path: {userId}/{fileName}.'
-      }
-    }
-  )
-  .post(
-    '/upload',
-    async ({ body, userId }) => {
+
       const document = await Document.create({
         userId,
-        fileName: body.fileName,
-        fileUrl: body.path,
-        fileType: body.fileType,
+        fileName: file.name,
+        fileUrl: path,
+        fileType: file.type,
         documentType: body.documentType
       })
       return { success: true, document: JSON.parse(JSON.stringify(document)) }
     },
     {
       body: t.Object({
-        fileName: t.String({ minLength: 1 }),
-        path: t.String(),
-        fileType: t.String(),
+        file: t.File({
+          type: ['application/pdf', 'image/jpeg', 'image/png'],
+          maxSize: 5 * 1024 * 1024
+        }),
         documentType: t.Enum(DOCUMENT_TYPE_ENUM)
       }),
       response: t.Object({ success: t.Boolean(), document: documentResponse }),
       detail: {
         ...protectedDetail,
-        summary: 'Simpan metadata dokumen',
-        description: 'Menyimpan metadata dokumen setelah file berhasil diunggah ke Supabase.'
+        summary: 'Unggah file dan simpan metadata',
+        description: 'Mengunggah file (PDF/Image, max 5MB) ke Supabase dan menyimpan metadata ke MongoDB.'
       }
     }
   )
@@ -113,6 +107,58 @@ export const documentRoutes = new Elysia({ prefix: '/api/documents' })
         ...protectedDetail,
         summary: 'Ambil daftar dokumen pengguna',
         description: 'Mengambil seluruh dokumen pengguna terautentikasi dengan signed URL unduh (berlaku 1 jam).'
+      }
+    }
+  )
+  .get(
+    '/:id',
+    async ({ params, userId, set }) => {
+      const document = await Document.findOne({ _id: params.id, userId })
+      if (!document) {
+        set.status = 404
+        throw new Error('Document not found')
+      }
+      
+      const { data } = await getSupabase().storage.from('documents').createSignedUrl(document.fileUrl, 3600)
+      return { success: true, document: { ...JSON.parse(JSON.stringify(document)), url: data?.signedUrl ?? null } }
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      response: t.Object({
+        success: t.Boolean(),
+        document: t.Composite([documentResponse, t.Object({ url: t.Nullable(t.String()) })])
+      }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Ambil detail dokumen',
+        description: 'Mengambil detail dokumen spesifik milik pengguna.'
+      }
+    }
+  )
+  .delete(
+    '/:id',
+    async ({ params, userId, set }) => {
+      const document = await Document.findOne({ _id: params.id, userId })
+      if (!document) {
+        set.status = 404
+        throw new Error('Document not found')
+      }
+      
+      const { error } = await getSupabase().storage.from('documents').remove([document.fileUrl])
+      if (error) {
+        console.error('Supabase delete error:', error)
+      }
+      
+      await document.deleteOne()
+      return { success: true, message: 'Document deleted successfully' }
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      response: t.Object({ success: t.Boolean(), message: t.String() }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Hapus dokumen',
+        description: 'Menghapus dokumen dari database dan file dari Supabase. Memastikan IDOR protection dengan userId.'
       }
     }
   )

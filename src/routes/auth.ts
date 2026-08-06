@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { jwt } from '@elysiajs/jwt'
+import { rateLimiter } from '../middleware/rateLimiter'
 import { randomBytes } from 'node:crypto'
 import { User } from '../models/User'
 import { getConfig } from '../config'
@@ -11,6 +12,13 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     jwt({
       name: 'jwt',
       secret: getConfig().jwtSecret
+    })
+  )
+  .use(
+    rateLimiter({
+      max: 5,
+      duration: 60000,
+      skip: (request) => !new URL(request.url).pathname.endsWith('/login')
     })
   )
   .post(
