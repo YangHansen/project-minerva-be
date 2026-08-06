@@ -2,6 +2,7 @@ import { Elysia } from 'elysia'
 import { cors } from '@elysiajs/cors'
 import { jwt } from '@elysiajs/jwt'
 import { swagger } from '@elysiajs/swagger'
+import mongoose from 'mongoose'
 import { rateLimiter } from './middleware/rateLimiter'
 import { getConfig } from './config'
 import { connectDB } from './lib/db'
@@ -90,6 +91,37 @@ export const app = new Elysia()
     })
   })
   .get('/api/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }))
+  .get('/', () =>
+    new Response(
+      `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Minerva API</title>
+  <style>
+    body { font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; text-align: center; color: #1f2937; }
+    h1 { font-size: 2rem; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: .9rem; }
+    .ok { background: #dcfce7; color: #166534; }
+    .down { background: #fee2e2; color: #991b1b; }
+    a { color: #2563eb; }
+    .meta { color: #6b7280; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <h1>🟢 Project Minerva API</h1>
+  <p><span class="badge ok">Server is running</span></p>
+  <p class="meta">${new Date().toISOString()}</p>
+  <p>Database: <span class="badge ${mongoose.connection.readyState === 1 ? 'ok' : 'down'}">${
+        mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
+      }</span></p>
+  <p><a href="/docs">Swagger API docs</a> · <a href="/api/health">Health check</a></p>
+</body>
+</html>`,
+      { headers: { 'content-type': 'text/html' } }
+    )
+  )
   .use(authRoutes)
   .use(userRoutes)
   .use(documentRoutes)
