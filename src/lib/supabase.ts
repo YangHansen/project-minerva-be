@@ -26,3 +26,18 @@ export async function ensureDocumentsBucket() {
   });
   if (error) throw new Error(`Failed to set "documents" size limit: ${error.message}`);
 }
+
+export async function ensureAvatarsBucket() {
+  const supabase = getSupabase();
+  const { data } = await supabase.storage.getBucket('avatars');
+  if (!data) {
+    const { error } = await supabase.storage.createBucket('avatars', { public: false });
+    if (error) throw new Error(`Failed to create "avatars" bucket: ${error.message}`);
+    console.log('Supabase bucket "avatars" created (private)');
+  }
+  const { error } = await supabase.storage.updateBucket('avatars', {
+    public: false,
+    fileSizeLimit: MAX_DOCUMENT_BYTES
+  });
+  if (error) throw new Error(`Failed to set "avatars" size limit: ${error.message}`);
+}

@@ -5,6 +5,7 @@ import { Mentor, Booking } from '../models/Mentor'
 import { User } from '../models/User'
 import { Transaction } from '../models/Transaction'
 import { isSlotAvailable } from '../lib/mentor'
+import { getSupabase } from '../lib/supabase'
 import { getConfig } from '../config'
 
 const protectedDetail = {
@@ -147,6 +148,16 @@ export const bookingRoutes = new Elysia({ prefix: '/api/bookings' })
       const mentors = await Mentor.find({ _id: { $in: mentorIds } })
       const mentorMap = new Map(mentors.map((m) => [String(m._id), m]))
 
+      const avatarUrls = new Map<string, string | null>()
+      await Promise.all(
+        mentors.map(async (m) => {
+          avatarUrls.set(
+            String(m._id),
+            m.avatarUrl ? (await getSupabase().storage.from('avatars').createSignedUrl(m.avatarUrl, 3600)).data?.signedUrl ?? null : null
+          )
+        })
+      )
+
       return {
         success: true,
         bookings: bookings.map((b) => {
@@ -155,7 +166,7 @@ export const bookingRoutes = new Elysia({ prefix: '/api/bookings' })
             id: String(b._id),
             mentorId: String(b.mentorId),
             mentorName: m?.name ?? 'Unknown',
-            avatarUrl: m?.avatarUrl ?? null,
+            avatarUrl: avatarUrls.get(String(b.mentorId)) ?? null,
             dateTime: b.dateTime.toISOString(),
             status: b.status,
             tokensCharged: b.tokensCharged,

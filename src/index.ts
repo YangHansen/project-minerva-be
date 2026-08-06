@@ -6,7 +6,7 @@ import mongoose from 'mongoose'
 import { rateLimiter } from './middleware/rateLimiter'
 import { getConfig } from './config'
 import { connectDB } from './lib/db'
-import { getSupabase, ensureDocumentsBucket } from './lib/supabase'
+import { getSupabase, ensureDocumentsBucket, ensureAvatarsBucket } from './lib/supabase'
 import { getResend } from './lib/resend'
 import { authRoutes } from './routes/auth'
 import { userRoutes } from './routes/user'
@@ -26,6 +26,7 @@ const config = getConfig()
 
 await connectDB(config.mongodbUri)
 await ensureDocumentsBucket()
+await ensureAvatarsBucket()
 
 export const supabase = getSupabase()
 export const resend = getResend()
