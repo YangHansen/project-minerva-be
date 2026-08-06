@@ -93,7 +93,7 @@ export const userRoutes = new Elysia({ prefix: '/api/user' })
       return { success: true, message: 'Onboarding profile saved successfully' }
     },
     {
-      body: t.Object(onboardingFields),
+      body: t.Object(onboardingFields, { additionalProperties: false }),
       response: messageResponse,
       detail: {
         ...protectedDetail,
@@ -128,7 +128,7 @@ export const userRoutes = new Elysia({ prefix: '/api/user' })
       return { success: true, message: 'Profile updated successfully' }
     },
     {
-      body: t.Object(onboardingFields),
+      body: t.Object(onboardingFields, { additionalProperties: false }),
       response: messageResponse,
       detail: {
         ...protectedDetail,

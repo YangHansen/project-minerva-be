@@ -2,6 +2,7 @@ import { Elysia } from 'elysia'
 import { cors } from '@elysiajs/cors'
 import { jwt } from '@elysiajs/jwt'
 import { swagger } from '@elysiajs/swagger'
+import { rateLimiter } from './middleware/rateLimiter'
 import { getConfig } from './config'
 import { connectDB } from './lib/db'
 import { getSupabase, ensureDocumentsBucket } from './lib/supabase'
@@ -27,7 +28,13 @@ await ensureDocumentsBucket()
 export const supabase = getSupabase()
 export const resend = getResend()
 
-const app = new Elysia()
+export const app = new Elysia()
+  .use(rateLimiter({ 
+    max: 100, 
+    duration: 60000, 
+    // Bypass global rate limit in test mode so tests don't randomly fail
+    skip: () => process.env.NODE_ENV === 'test' 
+  }))
   .use(cors({ origin: 'http://localhost:5173' }))
   .use(
     swagger({
@@ -93,13 +100,15 @@ const app = new Elysia()
   .use(mentorRoutes)
   .use(bookingRoutes)
   .use(transactionRoutes)
-  .listen(3000)
+
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(3000)
+  console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`)
+}
 
 // ponytail: Bun cron is UTC; 0 19 = 19:00 UTC. Shift the hour if you need local 7 PM.
 Bun.cron('0 19 * * *', () => {
   scanAndSendReminders().catch(console.error)
 })
-
-console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`)
 
 export type App = typeof app
