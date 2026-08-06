@@ -44,44 +44,56 @@ export const documentRoutes = new Elysia({ prefix: '/api/documents' })
     return { userId: sub as string }
   })
   .post(
-    '/upload',
+    '/upload-url',
     async ({ body, userId, set }) => {
-      const file = body.file
-      const path = `${userId}/${file.name}`
-      
-      const arrayBuffer = await file.arrayBuffer()
-      const { error } = await getSupabase().storage.from('documents').upload(path, arrayBuffer, {
-        contentType: file.type,
-        upsert: true
-      })
-      
+      const path = `${userId}/${body.fileName}`
+      const { data, error } = await getSupabase().storage.from('documents').createSignedUploadUrl(path)
       if (error) {
         set.status = 502
-        throw new Error('Failed to upload file to storage')
+        throw new Error('Failed to create upload URL')
+      }
+      return { success: true, uploadUrl: data.signedUrl, path }
+    },
+    {
+      body: t.Object({ fileName: t.String() }),
+      response: t.Object({ success: t.Boolean(), uploadUrl: t.String(), path: t.String() }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Buat signed upload URL',
+        description: 'Membuat signed upload URL agar frontend dapat mengunggah file langsung ke Supabase Storage.'
+      }
+    }
+  )
+  .post(
+    '/upload',
+    async ({ body, userId, set }) => {
+      const { data: probe } = await getSupabase().storage.from('documents').createSignedUrl(body.path, 60)
+      if (!probe) {
+        set.status = 404
+        throw new Error('Upload not found')
       }
 
       const document = await Document.create({
         userId,
-        fileName: file.name,
-        fileUrl: path,
-        fileType: file.type,
+        fileName: body.fileName,
+        fileUrl: body.path,
+        fileType: body.fileType,
         documentType: body.documentType
       })
       return { success: true, document: JSON.parse(JSON.stringify(document)) }
     },
     {
       body: t.Object({
-        file: t.File({
-          type: ['application/pdf', 'image/jpeg', 'image/png'],
-          maxSize: 5 * 1024 * 1024
-        }),
+        fileName: t.String(),
+        path: t.String(),
+        fileType: t.String(),
         documentType: t.Enum(DOCUMENT_TYPE_ENUM)
       }),
       response: t.Object({ success: t.Boolean(), document: documentResponse }),
       detail: {
         ...protectedDetail,
-        summary: 'Unggah file dan simpan metadata',
-        description: 'Mengunggah file (PDF/Image, max 5MB) ke Supabase dan menyimpan metadata ke MongoDB.'
+        summary: 'Simpan metadata dokumen',
+        description: 'Menyimpan metadata dokumen ke MongoDB setelah frontend selesai mengunggah file ke Supabase.'
       }
     }
   )

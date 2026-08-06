@@ -40,6 +40,7 @@ export const app = new Elysia()
   .use(
     swagger({
       path: '/docs',
+      exclude: ['/', '/api/health'],
       documentation: {
         info: {
           title: 'Project Minerva API',

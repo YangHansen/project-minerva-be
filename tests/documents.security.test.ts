@@ -6,6 +6,7 @@ import { jwt } from '@elysiajs/jwt'
 import { getConfig } from '../src/config'
 
 describe('Documents Security Tests', () => {
+  let userAId: string
   let userAToken: string
   let userBToken: string
   let userADocId: string
@@ -48,11 +49,12 @@ describe('Documents Security Tests', () => {
     const doc = await Document.create({
       userId: userA._id,
       fileName: 'secret.pdf',
-      fileUrl: `${userA._id}/secret.pdf`,
+      fileUrl: `${String(userA._id)}/secret.pdf`,
       fileType: 'application/pdf',
       documentType: 'cv'
     })
     userADocId = String(doc._id)
+    userAId = String(userA._id)
   })
 
   afterAll(async () => {
@@ -83,24 +85,43 @@ describe('Documents Security Tests', () => {
     expect(res.status).toBe(404)
   })
 
-  test('Malicious Uploads: Attempt to upload .exe file', async () => {
-    const formData = new FormData()
-    // Create a dummy .exe blob
-    const exeBlob = new Blob(['dummy content'], { type: 'application/x-msdownload' })
-    formData.append('file', exeBlob, 'virus.exe')
-    formData.append('documentType', 'cv')
-
+  test('Metadata upload rejects invalid documentType', async () => {
     const res = await app.handle(
       new Request('http://localhost/api/documents/upload', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${userAToken}`
+          'Authorization': `Bearer ${userAToken}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify({
+          fileName: 'cv.pdf',
+          path: `${userAId}/cv.pdf`,
+          fileType: 'application/pdf',
+          documentType: 'not-a-type'
+        })
       })
     )
-    
-    // t.File validation requires PDF/Image, should throw 422
+
     expect(res.status).toBe(422)
+  })
+
+  test('Metadata upload rejects file that was never uploaded', async () => {
+    const res = await app.handle(
+      new Request('http://localhost/api/documents/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${userAToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fileName: 'ghost.pdf',
+          path: `${userAId}/ghost.pdf`,
+          fileType: 'application/pdf',
+          documentType: 'cv'
+        })
+      })
+    )
+
+    expect(res.status).toBe(404)
   })
 })
