@@ -35,6 +35,11 @@ const shortlistResponse = t.Object({
   })
 })
 
+const protectedDetail = {
+  tags: ['Scholarships'],
+  security: [{ bearerAuth: [] }]
+}
+
 // List fields only (shared by catalog and recommendation wrappers)
 function toListFields(doc: InstanceType<typeof Scholarship>) {
   return {
@@ -91,7 +96,12 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
         educationLevel: t.Optional(t.String()),
         fieldOfStudy:   t.Optional(t.String()),
         fundingType:    t.Optional(t.String())
-      })
+      }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Katalog beasiswa',
+        description: 'Mencari dan menyaring beasiswa berdasarkan kata kunci, negara, jenjang, bidang studi, dan tipe pendanaan.'
+      }
     }
   )
 
@@ -149,6 +159,12 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
         matchScore,
         reasoning
       }))
+    }
+  }, {
+    detail: {
+      ...protectedDetail,
+      summary: 'Rekomendasi beasiswa',
+      description: 'Memberi peringkat beasiswa berdasarkan kecocokan profil onboarding pengguna, 5 teratas.'
     }
   })
 
@@ -242,6 +258,12 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
         reasoning
       }))
     }
+  }, {
+    detail: {
+      ...protectedDetail,
+      summary: 'Rekomendasi beasiswa berbasis CV (AI)',
+      description: 'Mengirim CV pengguna ke AI bersama kandidat beasiswa untuk rekomendasi yang disesuaikan. Membutuhkan profil onboarding dan CV berformat PDF.'
+    }
   })
 
   // ── GET /api/scholarships/:id ────────────────────────────────────────────────
@@ -256,6 +278,12 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
       throw new Error('Scholarship not found')
     }
     return { success: true, scholarship }
+  }, {
+    detail: {
+      ...protectedDetail,
+      summary: 'Detail beasiswa',
+      description: 'Mengambil informasi lengkap satu beasiswa berdasarkan id.'
+    }
   })
 
   // ── POST /api/scholarships/:id/shortlist ────────────────────────────────────
@@ -350,6 +378,11 @@ export const scholarshipRoutes = new Elysia({ prefix: '/api/scholarships' })
         ])),
         documentSubmissionGuidelines: t.Optional(t.String()),
         coreValues:                 t.Optional(t.Array(t.String()))
-      })
+      }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Tambah beasiswa (admin)',
+        description: 'Menambahkan beasiswa baru ke katalog. Hanya pengguna dengan role admin.'
+      }
     }
   )
