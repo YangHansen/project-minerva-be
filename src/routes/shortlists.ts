@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { jwt } from '@elysiajs/jwt'
 import { isValidObjectId, Types } from 'mongoose'
-import { Shortlist, SHORTLIST_ITEM_TYPES } from '../models/Shortlist'
+import { Shortlist, SHORTLIST_ITEM_TYPES, buildChecklistItems } from '../models/Shortlist'
 import { Scholarship } from '../models/Scholarship'
 import { getConfig } from '../config'
 
@@ -83,15 +83,61 @@ export const shortlistRoutes = new Elysia({ prefix: '/api/shortlists' })
     }
   )
 
-  // ── DELETE /api/shortlists/:id ───────────────────────────────────────────────
-  .delete(
-    '/:id',
-    async ({ params, userId, set }) => {
-      if (!isValidObjectId(params.id)) {
+  // ── POST /api/shortlists ─────────────────────────────────────────────────────
+  .post(
+    '/',
+    async ({ body, userId, set }) => {
+      if (!isValidObjectId(body.scholarshipId)) {
         set.status = 400
-        throw new Error('Invalid shortlist id')
+        throw new Error('Invalid scholarship id')
       }
-      const deleted = await Shortlist.findOneAndDelete({ _id: params.id, userId })
+      const scholarship = await Scholarship.findById(body.scholarshipId)
+      if (!scholarship) {
+        set.status = 404
+        throw new Error('Scholarship not found')
+      }
+      const existing = await Shortlist.findOne({ userId, scholarshipId: body.scholarshipId })
+      if (existing) {
+        return {
+          success: true,
+          message: 'Scholarship already in shortlist',
+          shortlist: JSON.parse(JSON.stringify(existing))
+        }
+      }
+      const shortlist = await Shortlist.create({
+        userId,
+        scholarshipId: body.scholarshipId,
+        status: 'saved',
+        items: buildChecklistItems(scholarship.requiredDocuments)
+      })
+      set.status = 201
+      return {
+        success: true,
+        message: 'Scholarship added to shortlist',
+        shortlist: JSON.parse(JSON.stringify(shortlist))
+      }
+    },
+    {
+      body: t.Object({
+        scholarshipId: t.String()
+      }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Tambah beasiswa ke shortlist',
+        description: 'Menyimpan beasiswa ke shortlist pengguna dan otomatis membuat checklist items dari requiredDocuments beasiswa.'
+      }
+    }
+  )
+
+  // ── DELETE /api/shortlists/:scholarshipId ────────────────────────────────────
+  .delete(
+    '/:scholarshipId',
+    async ({ params, userId, set }) => {
+      if (!isValidObjectId(params.scholarshipId)) {
+        set.status = 400
+        throw new Error('Invalid scholarship id')
+      }
+      const deleted = await Shortlist.findOneAndDelete({ scholarshipId: params.scholarshipId, userId })
       if (!deleted) {
         set.status = 404
         throw new Error('Shortlist not found')
@@ -103,30 +149,30 @@ export const shortlistRoutes = new Elysia({ prefix: '/api/shortlists' })
       detail: {
         ...protectedDetail,
         summary: 'Hapus beasiswa dari shortlist',
-        description: 'Menghapus beasiswa dari shortlist pengguna beserta seluruh item checklist-nya.'
+        description: 'Menghapus beasiswa dari shortlist pengguna berdasarkan scholarshipId.'
       }
     }
   )
 
-  // ── PATCH /api/shortlists/:id/items/:itemType ────────────────────────────────
+  // ── PATCH /api/shortlists/:scholarshipId/items/:itemId ───────────────────────
   .patch(
-    '/:id/items/:itemType',
+    '/:scholarshipId/items/:itemId',
     async ({ params, body, userId, set }) => {
-      if (!isValidObjectId(params.id)) {
+      if (!isValidObjectId(params.scholarshipId)) {
         set.status = 400
-        throw new Error('Invalid shortlist id')
+        throw new Error('Invalid scholarship id')
       }
-      const shortlist = await Shortlist.findOne({ _id: params.id, userId })
+      const shortlist = await Shortlist.findOne({ scholarshipId: params.scholarshipId, userId })
       if (!shortlist) {
         set.status = 404
         throw new Error('Shortlist not found')
       }
-      const item = (shortlist.items ?? []).find((i) => i.itemType === params.itemType)
+      const item = (shortlist.items ?? []).find((i) => i.itemType === params.itemId)
       if (!item) {
         set.status = 404
         throw new Error('Item not found in shortlist')
       }
-      if (body.documentId && params.itemType !== 'cv' && params.itemType !== 'essay') {
+      if (body.documentId && params.itemId !== 'cv' && params.itemId !== 'essay') {
         set.status = 422
         throw new Error('documentId only allowed for cv and essay items')
       }
@@ -142,7 +188,7 @@ export const shortlistRoutes = new Elysia({ prefix: '/api/shortlists' })
       return { success: true, message: 'Item updated successfully' }
     },
     {
-      params: t.Object({ id: t.String(), itemType: t.Union(SHORTLIST_ITEM_TYPES.map((v) => t.Literal(v))) }),
+      params: t.Object({ scholarshipId: t.String(), itemId: t.Union(SHORTLIST_ITEM_TYPES.map((v) => t.Literal(v))) }),
       body: t.Object({
         isCompleted: t.Optional(t.Boolean()),
         documentId: t.Optional(t.String())
@@ -151,7 +197,8 @@ export const shortlistRoutes = new Elysia({ prefix: '/api/shortlists' })
       detail: {
         ...protectedDetail,
         summary: 'Perbarui status item checklist',
-        description: 'Memperbarui status penyelesaian satu item checklist. documentId hanya berlaku untuk itemType cv dan essay.'
+        description: 'Memperbarui status penyelesaian satu item checklist berdasarkan scholarshipId.'
       }
     }
   )
+
