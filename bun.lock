@@ -15,6 +15,7 @@
         "resend": "^6.18.1",
       },
       "devDependencies": {
+        "@types/node": "^26.1.2",
         "bun-types": "latest",
       },
     },
