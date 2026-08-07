@@ -28,5 +28,16 @@ const IELTSSubmissionSchema = new Schema({
   totalQuestions: { type: Number, required: true }
 }, { timestamps: true });
 
+const IeltsResultSchema = new Schema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  listeningScore: { type: Number, required: true, min: 0, max: 9 },
+  readingScore: { type: Number, required: true, min: 0, max: 9 },
+  writingScore: { type: Number, required: true, min: 0, max: 9 },
+  speakingScore: { type: Number, required: true, min: 0, max: 9 },
+  overallBand: { type: Number, required: true, min: 0, max: 9 },
+  answers: { type: Schema.Types.Mixed } 
+}, { timestamps: true });
+
 export const IELTSExercise = models.IELTSExercise || model('IELTSExercise', IELTSExerciseSchema);
 export const IELTSSubmission = models.IELTSSubmission || model('IELTSSubmission', IELTSSubmissionSchema);
+export const IeltsResult = models.IeltsResult || model('IeltsResult', IeltsResultSchema);

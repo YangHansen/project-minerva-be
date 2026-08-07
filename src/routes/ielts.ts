@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { jwt } from '@elysiajs/jwt'
 import { isValidObjectId } from 'mongoose'
-import { IELTSExercise, IELTSSubmission } from '../models/IELTS'
+import { IELTSExercise, IELTSSubmission, IeltsResult } from '../models/IELTS'
 import { UserProfile } from '../models/UserProfile'
 import { gradeAnswers, toBandScore } from '../lib/ielts'
 import { getConfig } from '../config'
@@ -176,6 +176,96 @@ export const ieltsRoutes = new Elysia({ prefix: '/api/ielts' })
         ...protectedDetail,
         summary: 'Submit jawaban latihan IELTS',
         description: 'Menilai jawaban secara otomatis, menyimpan IELTSSubmission, dan memperbarui ieltsScore terbaik di profil pengguna. Pengiriman ulang diperbolehkan.'
+      }
+    }
+  )
+
+  // ── GET /api/ielts/results ───────────────────────────────────────────────────
+  .get(
+    '/results',
+    async ({ userId }) => {
+      const results = await IeltsResult.find({ userId }).sort({ createdAt: -1 })
+      return {
+        success: true,
+        results: results.map((r) => ({
+          id: String(r._id),
+          listeningScore: r.listeningScore,
+          readingScore: r.readingScore,
+          writingScore: r.writingScore,
+          speakingScore: r.speakingScore,
+          overallBand: r.overallBand,
+          answers: r.answers,
+          createdAt: r.createdAt.toISOString()
+        }))
+      }
+    },
+    {
+      response: t.Object({
+        success: t.Boolean(),
+        results: t.Array(
+          t.Object({
+            id: t.String(),
+            listeningScore: t.Number(),
+            readingScore: t.Number(),
+            writingScore: t.Number(),
+            speakingScore: t.Number(),
+            overallBand: t.Number(),
+            answers: t.Optional(t.Any()),
+            createdAt: t.String()
+          })
+        )
+      }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Ambil riwayat IELTS test lengkap',
+        description: 'Mengambil riwayat lengkap test IELTS pengguna dari yang terbaru.'
+      }
+    }
+  )
+
+  // ── POST /api/ielts/submit ───────────────────────────────────────────────────
+  .post(
+    '/submit',
+    async ({ body, userId, set }) => {
+      const { listeningScore, readingScore, writingScore, speakingScore, overallBand, answers } = body
+      
+      const result = await IeltsResult.create({
+        userId,
+        listeningScore,
+        readingScore,
+        writingScore,
+        speakingScore,
+        overallBand,
+        answers
+      })
+
+      await UserProfile.updateOne({ userId }, { $max: { ieltsScore: overallBand } })
+
+      set.status = 201
+      return {
+        success: true,
+        message: 'IELTS practice test results submitted successfully',
+        resultId: String(result._id)
+      }
+    },
+    {
+      body: t.Object({
+        listeningScore: t.Number({ minimum: 0, maximum: 9 }),
+        readingScore: t.Number({ minimum: 0, maximum: 9 }),
+        writingScore: t.Number({ minimum: 0, maximum: 9 }),
+        speakingScore: t.Number({ minimum: 0, maximum: 9 }),
+        overallBand: t.Number({ minimum: 0, maximum: 9 }),
+        answers: t.Optional(t.Any())
+      }),
+      response: t.Object({
+        success: t.Boolean(),
+        message: t.String(),
+        resultId: t.String()
+      }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Submit hasil full test IELTS',
+        description: 'Menyimpan 4 skor modul beserta overall band, serta memperbarui profil skor terbaik.'
       }
     }
   )
