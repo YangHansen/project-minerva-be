@@ -1,36 +1,40 @@
-import { Schema, model, models } from 'mongoose';
+import { type InferSchemaType, type Model, Schema, model, models } from 'mongoose'
 
-const ScholarshipSchema = new Schema({
-  name: { type: String, required: true },
-  provider: { type: String, required: true },
-  country: { type: String, required: true }, 
-  university: { type: String, required: true },
-  program: { type: String, required: true },  // Removed enum (Allows Bachelor's, Short Course, etc.)
-  educationLevel: { type: String },
-  fieldOfStudy: { type: String, required: true },
-  
-  // Funding is universally categorized, so enum is safe here
-  fundingType: { type: String, enum: ['fully_funded', 'partially_funded', 'self_funded'], required: true },
-  
-  // Scoring Criteria (Defaults added for regional scores)
-  minGpa: { type: Number, default: 0 },
-  minIeltsScore: { type: Number, default: 0 },
-  minToeflScore: { type: Number, default: 0 },
-  minTopikScore: { type: Number, default: 0 }, // Defaults to 0 so UK/US scholarships don't fail
-  minWorkExperienceYears: { type: Number, default: 0 },
-  
-  eligibilityRequirements: { type: String },
-  deadline: { type: Date, required: true },
-  applicationLink: { type: String },
-  
-  // Unlocked Documents Array
-  requiredDocuments: [{ type: String }], // Removed enum to allow new, unseen document types
-  
-  // Specific Rules
-  apostilleRequired: { type: Boolean, default: false },
-  submissionMethod: { type: String, enum: ['online', 'postal', 'both'], required: true },
-  documentSubmissionGuidelines: { type: String },
-  coreValues: [{ type: String }]
-}, { timestamps: true });
+const ScholarshipSchema = new Schema(
+  {
+    slug: { type: String, required: true, unique: true, trim: true, lowercase: true, index: true },
+    name: { type: String, required: true, trim: true },
+    provider: { type: String, required: true, trim: true },
+    country: { type: String, required: true, trim: true, index: true },
+    university: { type: String, required: true, trim: true },
+    program: { type: String, required: true, trim: true },
+    educationLevel: { type: String, required: true, trim: true, index: true },
+    fieldOfStudy: { type: String, required: true, trim: true, index: true },
+    fundingType: { type: String, required: true, trim: true, index: true },
+    scholarshipType: { type: String, required: true, trim: true },
+    eligibilitySummary: { type: String, required: true, trim: true },
+    eligibilityRequirements: { type: String, default: '' },
+    deadline: { type: Date, required: true, index: true },
+    applicationUrl: { type: String, required: true },
+    requiredDocuments: { type: [String], default: [] },
+    featured: { type: Boolean, default: false, index: true },
+    baselineMatchPercentage: { type: Number, min: 0, max: 100, default: 50 },
+    minGpa: { type: Number, default: 0, min: 0 },
+    minIeltsScore: { type: Number, default: 0, min: 0, max: 9 },
+    minToeflScore: { type: Number, default: 0, min: 0, max: 120 },
+    minTopikScore: { type: Number, default: 0, min: 0, max: 6 },
+    minWorkExperienceYears: { type: Number, default: 0, min: 0 },
+    apostilleRequired: { type: Boolean, default: false },
+    submissionMethod: { type: String, enum: ['online', 'postal', 'both'], default: 'online' },
+    documentSubmissionGuidelines: { type: String, default: '' },
+    coreValues: { type: [String], default: [] },
+  },
+  { timestamps: true },
+)
 
-export const Scholarship = model('Scholarship', ScholarshipSchema);
+ScholarshipSchema.index({ name: 'text', provider: 'text', country: 'text', fieldOfStudy: 'text' })
+
+type ScholarshipShape = InferSchemaType<typeof ScholarshipSchema>
+export const Scholarship =
+  (models.Scholarship as Model<ScholarshipShape> | undefined) ||
+  model<ScholarshipShape>('Scholarship', ScholarshipSchema)

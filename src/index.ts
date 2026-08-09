@@ -1,16 +1,36 @@
-// server/src/index.ts
-import { Elysia } from 'elysia'
-import { cors } from '@elysiajs/cors'
+import { app } from './app'
+import { config } from './config/env'
+import { connectDatabase, disconnectDatabase } from './db/mongo'
+import { seedScholarships } from './db/seed'
 
-const app = new Elysia()
-  .use(cors({ origin: 'http://localhost:5173' }))
-  .get('/api/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }))
-  .get('/api/users', () => [
-    { id: 1, name: 'Alex' },
-    { id: 2, name: 'Taylor' }
-  ])
-  .listen(3000)
+async function start() {
+  const connected = await connectDatabase()
+  if (connected) {
+    try {
+      await seedScholarships()
+      console.info('[database] scholarship catalog is ready')
+    } catch (error) {
+      if (config.isProduction) throw error
+      console.warn('[database] scholarship seed failed', error)
+    }
+  }
 
-console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`)
+  app.listen({ port: config.port, hostname: '0.0.0.0' })
+  console.info(`Minerva API running at http://localhost:${app.server?.port}`)
+}
 
-export type App = typeof app
+async function shutdown(signal: string) {
+  console.info(`[server] received ${signal}; shutting down`)
+  await app.stop()
+  await disconnectDatabase()
+  process.exit(0)
+}
+
+if (import.meta.main) {
+  process.once('SIGINT', () => void shutdown('SIGINT'))
+  process.once('SIGTERM', () => void shutdown('SIGTERM'))
+  await start()
+}
+
+export { app }
+export type { App } from './app'
