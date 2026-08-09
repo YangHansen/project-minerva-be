@@ -19,6 +19,10 @@ import { ieltsRoutes } from './routes/ielts'
 import { mentorRoutes } from './routes/mentors'
 import { bookingRoutes } from './routes/bookings'
 import { transactionRoutes } from './routes/transactions'
+import { interviewRoutes } from './routes/interview'
+import { practiceRoutes } from './routes/practice'
+import { billingRoutes } from './routes/billing'
+import { checklistRoutes } from './routes/checklist'
 import { scanAndSendReminders } from './lib/reminder'
 import { friendlyValidationMessage } from './lib/validation'
 
@@ -38,10 +42,10 @@ export const app = new Elysia()
     // Bypass global rate limit in test mode so tests don't randomly fail
     skip: () => process.env.NODE_ENV === 'test' 
   }))
-  .use(cors({ origin: 'http://localhost:5173' }))
+  .use(cors({ origin: ['http://localhost:5173', 'http://localhost:4173'] }))
   .use(
     swagger({
-      path: '/docs',
+      path: '/swagger',
       exclude: ['/', '/api/health'],
       documentation: {
         info: {
@@ -136,6 +140,10 @@ export const app = new Elysia()
   .use(mentorRoutes)
   .use(bookingRoutes)
   .use(transactionRoutes)
+  .use(interviewRoutes)
+  .use(practiceRoutes)
+  .use(billingRoutes)
+  .use(checklistRoutes)
 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(3000)

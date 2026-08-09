@@ -227,3 +227,45 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
       }
     }
   )
+
+  // ── POST /api/ai/ask ─────────────────────────────────────────────────────────
+  .post(
+    '/ask',
+    async ({ body, userId, set }) => {
+      // Mocked AI suggestion response
+      const suggestion = {
+        id: `ai-ask-${Date.now()}`,
+        title: 'AI Suggested Rewrite',
+        detail: `Based on your prompt: "${body.userPrompt}"`,
+        replacement: `[AI Rewrite] ${body.selectedText || 'This section has been rewritten to align better with the scholarship requirements.'}`,
+        tone: 'purple'
+      }
+
+      return {
+        success: true,
+        suggestion
+      }
+    },
+    {
+      body: t.Object({
+        documentId: t.Optional(t.String()),
+        selectedText: t.Optional(t.String()),
+        userPrompt: t.String()
+      }),
+      response: t.Object({
+        success: t.Boolean(),
+        suggestion: t.Object({
+          id: t.String(),
+          title: t.String(),
+          detail: t.String(),
+          replacement: t.String(),
+          tone: t.String()
+        })
+      }),
+      detail: {
+        ...protectedDetail,
+        summary: 'Tanya AI untuk revisi teks spesifik',
+        description: 'Menerima teks spesifik dan prompt pengguna untuk menghasilkan saran revisi (mocked).'
+      }
+    }
+  )

@@ -7,6 +7,10 @@ const MentorSchema = new Schema({
   scholarshipExperience: [{ type: String }], 
   availableDays: [{ type: String }], 
   availableTimeSlots: [{ type: String }], 
+  services: [{ type: String }],
+  biography: { type: String },
+  rating: { type: Number, default: 0 },
+  sessionPrice: { type: Number },
   priceInTokens: { type: Number, default: 10 }
 });
 

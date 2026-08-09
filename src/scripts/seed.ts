@@ -16,6 +16,8 @@ async function main() {
   const { IELTSExercise } = await import('../models/IELTS');
   const { getConfig } = await import('../config');
   const { ieltsSeedData } = await import('../data/ielts-seed');
+  const { SubscriptionPlan } = await import('../models/Billing');
+  const { billingSeedData } = await import('../data/billing_seed');
 
   try {
     const config = getConfig();
@@ -26,6 +28,12 @@ async function main() {
     console.log('Cleared existing IELTS data.');
     await IELTSExercise.insertMany(ieltsSeedData);
     console.log(`Inserted ${ieltsSeedData.length} IELTS exercises.`);
+
+    console.log('\n--- Seeding Subscription Plans ---');
+    await SubscriptionPlan.deleteMany({});
+    console.log('Cleared existing SubscriptionPlan data.');
+    await SubscriptionPlan.insertMany(billingSeedData);
+    console.log(`Inserted ${billingSeedData.length} subscription plans.`);
 
     console.log('\n--- Seeding Scholarships ---');
     await Scholarship.deleteMany({});

@@ -15,7 +15,20 @@ const AIReviewSchema = new Schema({
     motivation: { type: String },
     coreValuesAlignment: { type: String },
     suggestedImprovements: { type: String }
-  }
+  },
+  scores: {
+    clarity: { type: Number },
+    grammar: { type: Number },
+    structure: { type: Number },
+    impact: { type: Number }
+  },
+  suggestions: [{
+    id: { type: String },
+    title: { type: String },
+    detail: { type: String },
+    replacement: { type: String },
+    tone: { type: String }
+  }]
 }, { timestamps: true });
 
 export const AIReview = models.AIReview || model('AIReview', AIReviewSchema);

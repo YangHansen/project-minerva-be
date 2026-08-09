@@ -22,6 +22,10 @@ const mentorBody = {
   scholarshipExperience: t.Optional(t.Array(t.String())),
   availableDays: t.Optional(t.Array(t.String())),
   availableTimeSlots: t.Optional(t.Array(t.String())),
+  services: t.Optional(t.Array(t.String())),
+  biography: t.Optional(t.String()),
+  rating: t.Optional(t.Number()),
+  sessionPrice: t.Optional(t.Number()),
   priceInTokens: t.Optional(t.Number())
 }
 
@@ -31,6 +35,10 @@ const mentorUpdateBody = {
   scholarshipExperience: t.Optional(t.Array(t.String())),
   availableDays: t.Optional(t.Array(t.String())),
   availableTimeSlots: t.Optional(t.Array(t.String())),
+  services: t.Optional(t.Array(t.String())),
+  biography: t.Optional(t.String()),
+  rating: t.Optional(t.Number()),
+  sessionPrice: t.Optional(t.Number()),
   priceInTokens: t.Optional(t.Number())
 }
 
@@ -42,6 +50,10 @@ const mentorResponse = t.Object({
   scholarshipExperience: t.Array(t.String()),
   availableDays: t.Array(t.String()),
   availableTimeSlots: t.Array(t.String()),
+  services: t.Array(t.String()),
+  biography: t.String(),
+  rating: t.Number(),
+  sessionPrice: t.Number(),
   priceInTokens: t.Number()
 })
 
@@ -77,8 +89,12 @@ export const mentorRoutes = new Elysia({ prefix: '/api/mentors' })
   // ── GET /api/mentors ─────────────────────────────────────────────────────────
   .get(
     '/',
-    async () => {
-      const mentors = await Mentor.find({})
+    async ({ query }) => {
+      const filter: any = {}
+      if (query.service) {
+        filter.services = query.service
+      }
+      const mentors = await Mentor.find(filter)
       const withAvatars = await Promise.all(
         mentors.map(async (m) => ({
           id: String(m._id),
@@ -88,12 +104,19 @@ export const mentorRoutes = new Elysia({ prefix: '/api/mentors' })
           scholarshipExperience: m.scholarshipExperience ?? [],
           availableDays: m.availableDays ?? [],
           availableTimeSlots: m.availableTimeSlots ?? [],
+          services: m.services ?? [],
+          biography: m.biography ?? '',
+          rating: m.rating ?? 0,
+          sessionPrice: m.sessionPrice ?? 0,
           priceInTokens: m.priceInTokens ?? 10
         }))
       )
       return { success: true, mentors: withAvatars }
     },
     {
+      query: t.Object({
+        service: t.Optional(t.String())
+      }),
       response: t.Object({ success: t.Boolean(), mentors: t.Array(mentorResponse) }),
       detail: {
         ...protectedDetail,
