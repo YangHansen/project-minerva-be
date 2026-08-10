@@ -59,6 +59,45 @@ export const ieltsSeed = [
       },
     ],
   },
+  {
+    setNumber: 1,
+    order: 5,
+    section: 'speaking',
+    title: 'Speaking Part 1: Introduction and Interview',
+    content: 'In this first part, the examiner will ask you some questions about yourself. Let\'s talk about your hometown. Where is your hometown located? What do you find most interesting about your hometown? Would you say it is a good place to live?',
+    questions: [
+      {
+        questionType: 'essay',
+        correctAnswer: '',
+      },
+    ],
+  },
+  {
+    setNumber: 1,
+    order: 6,
+    section: 'speaking',
+    title: 'Speaking Part 2: Long Turn',
+    content: 'You will have 1 minute to prepare and 1 to 2 minutes to talk. Describe a memorable journey you have made. You should say: where you went, how you traveled, who you went with, and explain why this journey was so memorable to you.',
+    questions: [
+      {
+        questionType: 'essay',
+        correctAnswer: '',
+      },
+    ],
+  },
+  {
+    setNumber: 1,
+    order: 7,
+    section: 'speaking',
+    title: 'Speaking Part 3: Two-Way Discussion',
+    content: 'We have been talking about a memorable journey, and now I would like to discuss with you some more general questions related to this topic. How has the way people travel changed over the last few decades? What do you think are the environmental impacts of modern tourism?',
+    questions: [
+      {
+        questionType: 'essay',
+        correctAnswer: '',
+      },
+    ],
+  },
 
   // ==========================================
   // ACADEMIC TEST 2
@@ -115,6 +154,45 @@ export const ieltsSeed = [
       {
         questionType: 'essay',
         questionText: 'Write your essay here.',
+        correctAnswer: '',
+      },
+    ],
+  },
+  {
+    setNumber: 2,
+    order: 5,
+    section: 'speaking',
+    title: 'Speaking Part 1: Introduction and Interview',
+    content: 'In this first part, the examiner will ask you some questions about yourself. Let\'s talk about your free time. What do you usually do on the weekends? Do you prefer spending your free time alone or with friends? How have your hobbies changed since you were a child?',
+    questions: [
+      {
+        questionType: 'essay',
+        correctAnswer: '',
+      },
+    ],
+  },
+  {
+    setNumber: 2,
+    order: 6,
+    section: 'speaking',
+    title: 'Speaking Part 2: Long Turn',
+    content: 'You will have 1 minute to prepare and 1 to 2 minutes to talk. Describe a book or movie that had a strong impact on you. You should say: what it is, when you read or watched it, what it is about, and explain why it had such a strong impact on you.',
+    questions: [
+      {
+        questionType: 'essay',
+        correctAnswer: '',
+      },
+    ],
+  },
+  {
+    setNumber: 2,
+    order: 7,
+    section: 'speaking',
+    title: 'Speaking Part 3: Two-Way Discussion',
+    content: 'We\'ve been talking about a book or movie that impacted you. Let\'s consider some broader questions about entertainment. Do you think people read fewer books now than they did in the past? How do you think the film industry influences our culture and society?',
+    questions: [
+      {
+        questionType: 'essay',
         correctAnswer: '',
       },
     ],
@@ -177,4 +255,43 @@ export const ieltsSeed = [
       },
     ],
   },
+  {
+    setNumber: 3,
+    order: 5,
+    section: 'speaking',
+    title: 'Speaking Part 1: Introduction and Interview',
+    content: 'In this first part, the examiner will ask you some questions about yourself. Let\'s talk about your work or studies. Do you work or are you currently a student? What is the most difficult part of your job or studies? Is there anything you would like to change about your daily routine?',
+    questions: [
+      {
+        questionType: 'essay',
+        correctAnswer: '',
+      },
+    ],
+  },
+  {
+    setNumber: 3,
+    order: 6,
+    section: 'speaking',
+    title: 'Speaking Part 2: Long Turn',
+    content: 'You will have 1 minute to prepare and 1 to 2 minutes to talk. Describe a successful person that you admire. You should say: who this person is, how you know about them, what they have achieved, and explain why you consider them to be successful.',
+    questions: [
+      {
+        questionType: 'essay',
+        correctAnswer: '',
+      },
+    ],
+  },
+  {
+    setNumber: 3,
+    order: 7,
+    section: 'speaking',
+    title: 'Speaking Part 3: Two-Way Discussion',
+    content: 'We have been discussing a successful person you admire. Let\'s explore the concept of success further. How is success typically measured in your culture? Do you think financial wealth is the most important indicator of a successful life, or are there better ways to measure it?',
+    questions: [
+      {
+        questionType: 'essay',
+        correctAnswer: '',
+      },
+    ],
+  }
 ];
