@@ -36,6 +36,7 @@ export const ieltsSeed = [
     section: 'writing',
     title: 'Writing Task 1: Bar Graph',
     content: 'The bar chart shows the expenditure of two countries on consumer goods in 2010.',
+    graphUrl: 'https://drive.google.com/file/d/13vCSBEwgUriL8sF2yQxpSXtR5sgEAFnU/view?usp=sharing',
     questions: [
       {
         questionType: 'essay',
@@ -95,6 +96,7 @@ export const ieltsSeed = [
     section: 'writing',
     title: 'Writing Task 1: Line Graph',
     content: 'The graph below shows the consumption of three kinds of spreads between 1981 and 2007.',
+    graphUrl: 'https://drive.google.com/file/d/1LZhJ74zr8Bzzccuv746YlYeWhNzNuvkB/view?usp=sharing',
     questions: [
       {
         questionType: 'essay',
@@ -152,6 +154,7 @@ export const ieltsSeed = [
     section: 'writing',
     title: 'Writing Task 1: Table',
     content: 'The table shows the proportion of income spent on 4 common items in the UK in 1998.',
+    graphUrl: 'https://drive.google.com/file/d/1Q2z8foAYE_O0DvqVlmV5LEKmOjwp6zHo/view?usp=sharing',
     questions: [
       {
         questionType: 'essay',
