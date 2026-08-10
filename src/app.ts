@@ -9,6 +9,7 @@ import { scholarshipRoutes } from './modules/scholarships/routes'
 import { applicationRoutes } from './modules/applications/routes'
 import { checklistRoutes } from './modules/checklists/routes'
 import { documentRoutes } from './modules/documents/routes'
+import { ieltsRoutes } from './modules/ielts/routes'
 import { createMinervaAiRoutes } from './modules/ai/routes'
 
 export const app = new Elysia({ name: 'minerva-api' })
@@ -67,12 +68,26 @@ export const app = new Elysia({ name: 'minerva-api' })
       database,
     }
   })
+  .get('/media/*', async ({ params, set }) => {
+    const relative = params['*']
+    if (typeof relative !== 'string' || relative.includes('..') || relative.includes('\0')) {
+      set.status = 404
+      return { error: { code: 'NOT_FOUND', message: 'File not found' } }
+    }
+    const file = Bun.file(`public/${relative}`)
+    if (!(await file.exists())) {
+      set.status = 404
+      return { error: { code: 'NOT_FOUND', message: 'File not found' } }
+    }
+    return new Response(file)
+  })
   .use(authRoutes)
   .use(profileRoutes)
   .use(scholarshipRoutes)
   .use(applicationRoutes)
   .use(checklistRoutes)
   .use(documentRoutes)
+  .use(ieltsRoutes)
   .use(createMinervaAiRoutes())
 
 export type App = typeof app
