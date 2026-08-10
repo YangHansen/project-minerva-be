@@ -19,7 +19,7 @@ export async function seedScholarships() {
 export async function seedIelts() {
   if (!ieltsSeed.length) return
   await IELTSExercise.bulkWrite(
-    ieltsSeed.map((exercise) => ({
+    ieltsSeed.map((exercise: (typeof ieltsSeed)[number]) => ({
       updateOne: {
         filter: { setNumber: exercise.setNumber, order: exercise.order },
         update: { $set: exercise },

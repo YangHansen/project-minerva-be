@@ -1,11 +1,12 @@
 import { Schema, model, models } from 'mongoose';
 
 const IELTSExerciseSchema = new Schema({
-  testId: { type: String, required: true },
+  setNumber: { type: Number, required: true },
+  order: { type: Number, required: true },
   section: { type: String, enum: ['reading', 'listening', 'writing'], required: true },
-  partNumber: { type: Number, required: true },
   title: { type: String, required: true },
   content: { type: String, required: true },
+  graphUrl: { type: String },
   audioUrl: { type: String },
   questions: [{
     questionType: {
