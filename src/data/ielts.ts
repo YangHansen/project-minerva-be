@@ -14,7 +14,7 @@ export const ieltsSeed = [
       { questionType: 'fill_in_the_blank', questionText: 'The flat must be fully ________.', correctAnswer: 'furnished', explanation: 'She says she needs it fully furnished.' },
       { questionType: 'fill_in_the_blank', questionText: 'Maximum budget per month: £________.', correctAnswer: '850', explanation: 'Her stated maximum budget is 850.' },
       { questionType: 'fill_in_the_blank', questionText: 'The property on Bridge Street costs £________ per month.', correctAnswer: '800', explanation: 'The man offers a flat for £800.' },
-      { questionType: 'multiple_choice', questionText: 'What extra feature does the flat have?', options: ['A garden', 'A parking space', 'A balcony'], correctAnswer: 'A parking space', explanation: 'The man mentions it includes a parking space.' },
+      { questionType: 'fill_in_the_blank', questionText: 'The flat has a ________ space.', correctAnswer: 'parking', explanation: 'The man mentions it includes a parking space.' },
     ],
   },
   {
@@ -112,8 +112,9 @@ export const ieltsSeed = [
     questions: [
       { questionType: 'fill_in_the_blank', questionText: 'The student\'s last name is ________.', correctAnswer: 'Reeves', explanation: 'He spells his name as Reeves.' },
       { questionType: 'fill_in_the_blank', questionText: 'The address is 42 ________ Road.', correctAnswer: 'Westend', explanation: 'Stated explicitly.' },
-      { questionType: 'multiple_choice', questionText: 'How many books can Jonathan borrow at a time?', options: ['5', '8', '10'], correctAnswer: '8', explanation: 'The librarian says he can borrow 8 books.' },
-      { questionType: 'true_false_not_given', questionText: 'Jonathan is a resident but not a student.', correctAnswer: 'False', explanation: 'He shows a university ID, confirming he is a student.' },
+      { questionType: 'fill_in_the_blank', questionText: 'Jonathan can borrow ________ books at a time.', correctAnswer: '8', explanation: 'The librarian says he can borrow 8 books.' },
+      { questionType: 'fill_in_the_blank', questionText: 'Jonathan is a ________.', correctAnswer: 'student', explanation: 'He shows a university ID, confirming he is a student.' },
+      { questionType: 'fill_in_the_blank', questionText: 'The loan period is ________ weeks.', correctAnswer: 'three', explanation: 'The librarian says he can borrow the books for three weeks.' },
     ],
   },
   {
@@ -210,8 +211,11 @@ export const ieltsSeed = [
     audioUrl: 'https://example.com/audio/ielts-test-3-listening-part-1.mp3',
     questions: [
       { questionType: 'fill_in_the_blank', questionText: 'The off-peak membership costs £________ a month.', correctAnswer: '30', explanation: 'The clerk states the price is £30.' },
-      { questionType: 'multiple_choice', questionText: 'What is included for free in the off-peak membership?', options: ['Fitness classes', 'Pool and sauna', 'Lockers'], correctAnswer: 'Pool and sauna', explanation: 'Pool and sauna are included; classes and lockers cost extra.' },
+      { questionType: 'fill_in_the_blank', questionText: 'The membership includes a ________ and sauna.', correctAnswer: 'pool', explanation: 'Pool and sauna are included; classes and lockers cost extra.' },
       { questionType: 'fill_in_the_blank', questionText: 'Fitness classes cost an extra £________.', correctAnswer: '5', explanation: 'The clerk says classes cost an extra £5.' },
+      { questionType: 'fill_in_the_blank', questionText: 'Access is allowed from ________ AM to 4 PM.', correctAnswer: '9', explanation: 'The clerk says access is available from 9 AM to 4 PM.' },
+      { questionType: 'fill_in_the_blank', questionText: 'The customer also needs a ________.', correctAnswer: 'locker', explanation: 'The customer says they also need a locker.' },
+      { questionType: 'fill_in_the_blank', questionText: 'Lockers cost £________ a week.', correctAnswer: '2', explanation: 'The clerk says lockers are £2 a week.' },
     ],
   },
   {
