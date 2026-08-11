@@ -10,6 +10,15 @@ const UploadSchema = new Schema(
   { _id: false },
 )
 
+const DocumentPageSchema = new Schema(
+  {
+    id: { type: String, required: true, maxlength: 120 },
+    title: { type: String, required: true, maxlength: 160 },
+    contentHtml: { type: String, default: '', maxlength: 1_000_000 },
+    contentText: { type: String, default: '', maxlength: 500_000 },
+  },
+  { _id: false },
+)
 const documentKinds = [
   'cv',
   'essay',
@@ -36,6 +45,7 @@ const DocumentSchema = new Schema(
     prompt: { type: String, default: '', maxlength: 10_000 },
     contentHtml: { type: String, default: '', maxlength: 1_000_000 },
     contentText: { type: String, default: '', maxlength: 500_000 },
+    pages: { type: [DocumentPageSchema], default: [] },
     status: {
       type: String,
       enum: ['missing', 'draft', 'ready'],
@@ -62,6 +72,7 @@ const DocumentVersionSchema = new Schema(
     label: { type: String, required: true, trim: true, maxlength: 240 },
     contentHtml: { type: String, default: '', maxlength: 1_000_000 },
     contentText: { type: String, default: '', maxlength: 500_000 },
+    pages: { type: [DocumentPageSchema], default: [] },
     source: {
       type: String,
       enum: ['manual', 'autosave', 'review', 'restore'],

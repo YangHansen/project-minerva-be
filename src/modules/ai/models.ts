@@ -171,6 +171,15 @@ const ieltsAiEvaluationSchema = new Schema(
 )
 ieltsAiEvaluationSchema.index({ userId: 1, kind: 1, createdAt: -1 })
 
+const aiRecommendationDailySchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    dayKey: { type: String, required: true, maxlength: 10 },
+    count: { type: Number, required: true, default: 0, min: 0, max: 3 },
+  },
+  { timestamps: true },
+)
+aiRecommendationDailySchema.index({ userId: 1, dayKey: 1 }, { unique: true })
 const aiUsageSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -207,6 +216,7 @@ type AiChatMessageShape = InferSchemaType<typeof aiChatMessageSchema>
 type DocumentAiReviewShape = InferSchemaType<typeof documentAiReviewSchema>
 type InterviewSessionShape = InferSchemaType<typeof interviewSessionSchema>
 type IeltsAiEvaluationShape = InferSchemaType<typeof ieltsAiEvaluationSchema>
+type AiRecommendationDailyShape = InferSchemaType<typeof aiRecommendationDailySchema>
 type AiUsageShape = InferSchemaType<typeof aiUsageSchema>
 
 export const AiChatThread =
@@ -229,6 +239,9 @@ export const IeltsAiEvaluation =
   (models.IeltsAiEvaluation as Model<IeltsAiEvaluationShape> | undefined) ||
   model<IeltsAiEvaluationShape>('IeltsAiEvaluation', ieltsAiEvaluationSchema)
 
+export const AiRecommendationDaily =
+  (models.AiRecommendationDaily as Model<AiRecommendationDailyShape> | undefined) ||
+  model<AiRecommendationDailyShape>('AiRecommendationDaily', aiRecommendationDailySchema)
 export const AiUsage =
   (models.AiUsage as Model<AiUsageShape> | undefined) ||
   model<AiUsageShape>('AiUsage', aiUsageSchema)

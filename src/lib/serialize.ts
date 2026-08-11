@@ -20,7 +20,7 @@ export function stripHtml(value: string) {
 }
 
 const editorTags = new Set([
-  'a', 'b', 'blockquote', 'br', 'div', 'em', 'h2', 'h3', 'i', 'li',
+  'a', 'b', 'blockquote', 'br', 'div', 'em', 'font', 'h2', 'h3', 'i', 'li', 'mark',
   'ol', 'p', 's', 'strike', 'strong', 'u', 'ul',
 ])
 
@@ -78,6 +78,29 @@ function editorHref(attributes: string) {
   return safeEditorHref(match?.[1] ?? match?.[2] ?? match?.[3] ?? '')
 }
 
+const editorHighlightColors = new Set(['yellow', 'green', 'blue', 'pink', 'purple'])
+
+function editorHighlight(attributes: string) {
+  const match = /(?:^|\s)data-highlight\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i.exec(attributes)
+  const value = (match?.[1] ?? match?.[2] ?? match?.[3] ?? '').toLowerCase()
+  return editorHighlightColors.has(value) ? value : undefined
+}
+
+const editorFonts = new Map([
+  ['arial', 'Arial'],
+  ['calibri', 'Calibri'],
+  ['cambria', 'Cambria'],
+  ['courier new', 'Courier New'],
+  ['garamond', 'Garamond'],
+  ['georgia', 'Georgia'],
+  ['times new roman', 'Times New Roman'],
+  ['verdana', 'Verdana'],
+])
+
+function editorFont(attributes: string) {
+  const match = /(?:^|\s)face\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i.exec(attributes)
+  return editorFonts.get((match?.[1] ?? match?.[2] ?? match?.[3] ?? '').trim().toLowerCase())
+}
 function skipElement(value: string, start: number, name: string) {
   const closingTag = new RegExp(`<\\s*\\/\\s*${name}\\s*>`, 'gi')
   closingTag.lastIndex = start
@@ -131,7 +154,12 @@ export function sanitizeEditorHtml(value: string) {
     }
 
     const href = tag.name === 'a' ? editorHref(tag.attributes) : undefined
-    result += href ? `<a href="${href}">` : `<${tag.name}>`
+    const highlight = tag.name === 'mark' ? editorHighlight(tag.attributes) : undefined
+    const font = tag.name === 'font' ? editorFont(tag.attributes) : undefined
+    if (href) result += `<a href="${href}">`
+    else if (highlight) result += `<mark data-highlight="${highlight}">`
+    else if (font) result += `<font face="${font}">`
+    else result += `<${tag.name}>`
   }
 
   return result

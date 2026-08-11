@@ -15,6 +15,29 @@ const documentKind = t.Union([
   t.Literal('passport'), t.Literal('certificate'), t.Literal('custom'),
 ])
 const documentStatus = t.Union([t.Literal('missing'), t.Literal('draft'), t.Literal('ready')])
+const documentPage = t.Object({
+  id: t.String({ minLength: 1, maxLength: 120 }),
+  title: t.String({ minLength: 1, maxLength: 160 }),
+  content: t.Optional(t.String({ maxLength: 1_000_000 })),
+  contentHtml: t.Optional(t.String({ maxLength: 1_000_000 })),
+})
+
+function normalizedPages(pages: Array<{ id: string; title: string; content?: string; contentHtml?: string }> | undefined) {
+  if (!pages) return undefined
+  return pages.slice(0, 30).map((page, index) => {
+    const content = normalizedDocumentContent(page.contentHtml ?? page.content ?? '')
+    return { id: page.id || `page-${index + 1}`, title: page.title.trim() || `Page ${index + 1}`, contentHtml: content.contentHtml || '', contentText: content.contentText || '' }
+  })
+}
+
+function pagesJson(pages: unknown) {
+  if (!Array.isArray(pages)) return []
+  return pages.map((page, index) => {
+    const value = page as Record<string, unknown>
+    const contentHtml = sanitizeEditorHtml(String(value.contentHtml ?? ''))
+    return { id: String(value.id || `page-${index + 1}`), title: String(value.title || `Page ${index + 1}`), content: contentHtml, contentHtml, contentText: stripHtml(contentHtml) }
+  })
+}
 
 function versionJson(version: Record<string, any>) {
   const contentHtml = sanitizeEditorHtml(String(version.contentHtml ?? ''))
@@ -24,6 +47,7 @@ function versionJson(version: Record<string, any>) {
     content: version.contentHtml ?? '',
     contentHtml: version.contentHtml ?? '',
     contentText: version.contentText ?? '',
+    pages: pagesJson(version.pages),
     source: version.source,
     createdAt: new Date(version.createdAt).toISOString(),
   }
@@ -43,6 +67,7 @@ function documentJson(document: Record<string, any>, versions: Record<string, an
     content: document.contentHtml ?? '',
     contentHtml: document.contentHtml ?? '',
     contentText: document.contentText ?? '',
+    pages: pagesJson(document.pages),
     uploadName: document.upload?.originalName ?? '',
     upload: document.upload ?? null,
     status: document.status,
@@ -101,6 +126,7 @@ export const documentRoutes = new Elysia({ name: 'document-routes' })
         prompt: body.prompt?.trim() ?? '',
         contentHtml: content.contentHtml ?? '',
         contentText: content.contentText ?? '',
+        pages: normalizedPages(body.pages) ?? [],
         status: body.status ?? (content.contentText ? 'draft' : 'missing'),
         order,
       })
@@ -117,6 +143,7 @@ export const documentRoutes = new Elysia({ name: 'document-routes' })
         content: t.Optional(t.String({ maxLength: 1_000_000 })),
         contentHtml: t.Optional(t.String({ maxLength: 1_000_000 })),
         contentText: t.Optional(t.String({ maxLength: 500_000 })),
+        pages: t.Optional(t.Array(documentPage, { maxItems: 30 })),
         status: t.Optional(documentStatus),
         order: t.Optional(t.Number({ minimum: 0 })),
       }),
@@ -148,6 +175,7 @@ export const documentRoutes = new Elysia({ name: 'document-routes' })
         if (content.contentText !== undefined) document.contentText = content.contentText
         if (body.status === undefined) document.status = document.contentText.trim() ? 'draft' : 'missing'
       }
+      if (body.pages !== undefined) document.pages = (normalizedPages(body.pages) ?? []) as any
       if (body.status !== undefined) document.status = body.status
       await document.save()
       const versions = await loadVersions(document._id, userId)
@@ -163,6 +191,7 @@ export const documentRoutes = new Elysia({ name: 'document-routes' })
         content: t.Optional(t.String({ maxLength: 1_000_000 })),
         contentHtml: t.Optional(t.String({ maxLength: 1_000_000 })),
         contentText: t.Optional(t.String({ maxLength: 500_000 })),
+        pages: t.Optional(t.Array(documentPage, { maxItems: 30 })),
         status: t.Optional(documentStatus),
         order: t.Optional(t.Number({ minimum: 0 })),
       }),
