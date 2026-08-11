@@ -30,6 +30,7 @@ type SuggestionPlain = {
 type OwnedDocument = {
   _id: Types.ObjectId
   applicationId?: Types.ObjectId
+  contentText?: string
 }
 
 type ReviewPlain = {
@@ -84,6 +85,7 @@ const resolveSuggestion = async (input: {
   documentId: string
   suggestionId: string
   status: 'accepted' | 'dismissed'
+  reviewedContentHash?: string
 }) => {
   const review = await DocumentAiReview.findOne({
     userId: input.userId,
@@ -97,6 +99,9 @@ const resolveSuggestion = async (input: {
   if (!suggestion) throw new AppError(404, 'SUGGESTION_NOT_FOUND', 'Review suggestion not found')
   suggestion.status = input.status
   suggestion.resolvedAt = new Date()
+  if (input.status === 'accepted' && input.reviewedContentHash) {
+    review.reviewedContentHash = input.reviewedContentHash
+  }
   review.markModified('suggestions')
   await review.save()
   return serializeSuggestion(suggestion)
@@ -193,13 +198,16 @@ export const createDocumentReviewRoutes = ({ getAi }: AiRouteDependencies) =>
     )
     .post('/api/documents/:id/suggestions/:suggestionId/accept', async ({ request, params }) => {
       const { userId } = await requireAuth(request)
-      const document = await Document.findOne({ _id: params.id, userId }).select('_id').lean()
+      const document = await Document.findOne({ _id: params.id, userId })
+        .select('_id contentText')
+        .lean() as unknown as OwnedDocument | null
       if (!document) throw new AppError(404, 'DOCUMENT_NOT_FOUND', 'Document not found')
       const suggestion = await resolveSuggestion({
         userId,
         documentId: params.id,
         suggestionId: params.suggestionId,
         status: 'accepted',
+        reviewedContentHash: await sha256(document.contentText ?? ''),
       })
       return { suggestion }
     })

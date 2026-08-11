@@ -6,6 +6,7 @@ import { createDocumentReviewRoutes } from './routes/document-reviews'
 import { createIeltsAiRoutes } from './routes/ielts'
 import { createInterviewRoutes } from './routes/interviews'
 import { createAiUsageRoutes } from './routes/usage'
+import { createRecommendationRoutes } from './routes/recommendations'
 
 export interface MinervaAiRouteOptions {
   ai?: MinervaAI
@@ -25,5 +26,6 @@ export const createMinervaAiRoutes = (options: MinervaAiRouteOptions = {}) => {
     .use(createDocumentReviewRoutes(dependencies))
     .use(createInterviewRoutes(dependencies))
     .use(createIeltsAiRoutes(dependencies))
+    .use(createRecommendationRoutes())
     .use(createAiUsageRoutes())
 }

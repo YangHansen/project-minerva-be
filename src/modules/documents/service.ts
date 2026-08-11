@@ -23,6 +23,7 @@ export async function createDocumentVersion(documentId: string, userId: string, 
     label: input.label?.trim() || `Version ${count + 1}`,
     contentHtml: document.contentHtml,
     contentText: document.contentText,
+    pages: document.pages,
     source: input.source ?? 'manual',
   })
   const storedCount = await DocumentVersion.countDocuments({ documentId, userId })
@@ -51,6 +52,7 @@ export async function restoreDocumentVersion(documentId: string, versionId: stri
 
   document.contentHtml = sanitizeEditorHtml(version.contentHtml)
   document.contentText = stripHtml(document.contentHtml)
+  document.pages = version.pages || []
   document.status = version.contentText.trim() ? 'draft' : 'missing'
   const storedCount = await DocumentVersion.countDocuments({ documentId, userId })
   if (storedCount > DOCUMENT_VERSION_LIMIT) {

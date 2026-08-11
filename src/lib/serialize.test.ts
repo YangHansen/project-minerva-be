@@ -23,4 +23,21 @@ describe('sanitizeEditorHtml', () => {
   it('removes style content and inline style attributes', () => {
     expect(sanitizeEditorHtml('<style>@import "javascript:alert(1)";</style><p style="background:url(javascript:alert(2))">Safe</p>')).toBe('<p>Safe</p>')
   })
+  it('keeps only approved document font names', () => {
+    expect(sanitizeEditorHtml('<font face="Times New Roman" onclick="alert(1)">Essay</font>'))
+      .toBe('<font face="Times New Roman">Essay</font>')
+    expect(sanitizeEditorHtml('<font face="Comic Sans MS">Essay</font>'))
+      .toBe('<font>Essay</font>')
+  })
+  it('preserves safe AI rewrite highlights while dropping attributes', () => {
+    expect(sanitizeEditorHtml('<p>Original <mark class="ai-rewrite" onclick="alert(1)">improved text</mark>.</p>'))
+      .toBe('<p>Original <mark>improved text</mark>.</p>')
+  })
+
+  it('preserves only allowlisted highlight colors', () => {
+    expect(sanitizeEditorHtml('<mark data-highlight="pink" style="color:red" onclick="alert(1)">Text</mark>'))
+      .toBe('<mark data-highlight="pink">Text</mark>')
+    expect(sanitizeEditorHtml('<mark data-highlight="javascript:alert(1)">Text</mark>'))
+      .toBe('<mark>Text</mark>')
+  })
 })
