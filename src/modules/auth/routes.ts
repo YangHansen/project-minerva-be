@@ -33,6 +33,12 @@ const demoTokenPacks = {
   focus: 60,
 } as const
 
+const packDisplay: Record<string, { name: string; price: string; description: string; badge: string }> = {
+  starter:  { name: 'Starter',  price: '$4.99',  description: 'A focused boost for one application.',    badge: '' },
+  momentum: { name: 'Momentum', price: '$11.99', description: 'Great for an active application season.', badge: 'Most popular' },
+  focus:    { name: 'Focus',    price: '$19.99', description: 'Extra support across several folders.',    badge: '' },
+}
+
 async function publicUser(user: { _id: unknown; email: string; role: 'user' | 'admin'; tokenBalance: number }) {
   const profile = await UserProfile.findOne({ userId: user._id }).lean()
   return {
@@ -146,6 +152,18 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
     await requireAuth(request)
     set.headers['set-cookie'] = expiredSessionCookie()
     return { success: true as const }
+  })
+  .get('/api/pricing/packs', async () => {
+    requireDatabase()
+    const packs = (Object.keys(demoTokenPacks) as Array<keyof typeof demoTokenPacks>).map((id) => ({
+      id,
+      name: packDisplay[id].name,
+      tokens: demoTokenPacks[id],
+      price: packDisplay[id].price,
+      description: packDisplay[id].description,
+      badge: packDisplay[id].badge,
+    }))
+    return { packs }
   })
   .get('/api/auth/google', async ({ query, set }) => {
     requireDatabase()
