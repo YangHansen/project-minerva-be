@@ -228,7 +228,7 @@ export class EliceTerraAdapter implements TerraPort {
 
 export const createEliceTerraFromEnv = (): EliceTerraAdapter =>
   new EliceTerraAdapter({
-    apiKey: process.env.ELICE_API_KEY || '',
+    apiKey: process.env.ELICE_TERRA_API_KEY || process.env.ELICE_API_KEY || '',
     baseUrl: process.env.ELICE_TERRA_BASE_URL || DEFAULT_TERRA_BASE_URL,
     model: process.env.ELICE_TERRA_MODEL || DEFAULT_MODEL,
     timeoutMs: Number(process.env.ELICE_TIMEOUT_MS) || 120_000,

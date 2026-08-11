@@ -27,8 +27,10 @@ export const validateAudio = (audio: File): void => {
   if (audio.size > maximumBytes) {
     throw new AppError(413, 'AUDIO_TOO_LARGE', `Audio must be smaller than ${maximumBytes} bytes`)
   }
-  if (audio.type && !audio.type.startsWith('audio/')) {
-    throw new AppError(415, 'UNSUPPORTED_AUDIO_TYPE', 'Upload a WebM, MP3, MP4, WAV, or OGG audio file')
+  const mimeType = audio.type.toLowerCase().split(';', 1)[0].trim()
+  const supportedVideoContainers = new Set(['video/webm', 'video/mp4', 'video/ogg'])
+  if (mimeType && !mimeType.startsWith('audio/') && !supportedVideoContainers.has(mimeType)) {
+    throw new AppError(415, 'UNSUPPORTED_AUDIO_TYPE', 'Record with WebM, MP3, MP4, WAV, or OGG audio')
   }
 }
 

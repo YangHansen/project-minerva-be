@@ -21,7 +21,7 @@ export interface ProviderUsage {
 }
 
 export interface ProviderMetadata {
-  provider: 'elice'
+  provider: 'elice' | 'google'
   model: string
   requestId?: string
   usage: ProviderUsage
@@ -68,6 +68,23 @@ export interface TranscriptionRequest {
 
 export interface WhisperPort {
   transcribe(request: TranscriptionRequest): Promise<TranscriptResult>
+}
+
+export interface SpeechSynthesisRequest {
+  text: string
+  language: 'a' | 'b'
+  voice?: string
+  speed?: number
+}
+
+export interface SpeechSynthesisResult {
+  dataUrl: string
+  contentType: string
+  metadata: ProviderMetadata
+}
+
+export interface KokoroPort {
+  synthesize(request: SpeechSynthesisRequest): Promise<SpeechSynthesisResult>
 }
 
 export type SuggestionTone = 'purple' | 'yellow' | 'blue' | 'green'
@@ -188,6 +205,16 @@ export interface MinervaAI {
     durationSeconds: number
     language: 'en' | 'id'
   }): Promise<InterviewAnswerEvaluation>
+
+  replyToInterviewAnswer(input: {
+    scholarshipName: string
+    question: string
+    transcript: string
+    language: 'en' | 'id'
+    allowFollowUp: boolean
+  }): Promise<{ text: string; followUp?: string; metadata: ProviderMetadata }>
+
+  synthesizeSpeech(input: SpeechSynthesisRequest): Promise<SpeechSynthesisResult>
 
   evaluateIeltsWriting(input: {
     task: string

@@ -114,6 +114,7 @@ const interviewAnswerSchema = new Schema({
     language: { type: String },
   },
   evaluation: { type: interviewEvaluationSchema, required: true },
+  interviewerReply: { type: String, maxlength: 2_000 },
   transcriptionMetadata: { type: providerMetadataSchema, required: true },
   evaluationMetadata: { type: providerMetadataSchema, required: true },
   createdAt: { type: Date, default: Date.now },
@@ -233,7 +234,7 @@ export const AiUsage =
   model<AiUsageShape>('AiUsage', aiUsageSchema)
 
 export const toStoredMetadata = (metadata: {
-  provider: 'elice'
+  provider: 'elice' | 'google'
   model: string
   requestId?: string
   usage: { promptTokens: number; completionTokens: number; cachedPromptTokens: number }

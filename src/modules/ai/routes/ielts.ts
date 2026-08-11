@@ -15,6 +15,8 @@ type EvaluationListItem = {
   kind: 'writing' | 'speaking'
   task?: string
   prompt: string
+  transcript?: string
+  durationSeconds?: number
   result: unknown
   createdAt: Date
 }
@@ -27,7 +29,7 @@ export const createIeltsAiRoutes = ({ getAi }: AiRouteDependencies) =>
       const evaluations = await IeltsAiEvaluation.find({ userId, ...(kind ? { kind } : {}) })
         .sort({ createdAt: -1 })
         .limit(30)
-        .select('kind task prompt result createdAt')
+        .select('kind task prompt transcript durationSeconds result createdAt')
         .lean() as unknown as EvaluationListItem[]
       return {
         evaluations: evaluations.map((evaluation) => ({
@@ -35,6 +37,8 @@ export const createIeltsAiRoutes = ({ getAi }: AiRouteDependencies) =>
           kind: evaluation.kind,
           task: evaluation.task,
           prompt: evaluation.prompt,
+          transcript: evaluation.transcript,
+          durationSeconds: evaluation.durationSeconds,
           result: evaluation.result,
           createdAt: evaluation.createdAt,
         })),

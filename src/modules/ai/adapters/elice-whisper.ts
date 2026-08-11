@@ -247,7 +247,7 @@ export class EliceWhisperAdapter implements WhisperPort {
 
 export const createEliceWhisperFromEnv = (): EliceWhisperAdapter =>
   new EliceWhisperAdapter({
-    apiKey: process.env.ELICE_API_KEY || '',
+    apiKey: process.env.ELICE_WHISPER_API_KEY || process.env.ELICE_API_KEY || '',
     baseUrl: process.env.ELICE_WHISPER_BASE_URL || DEFAULT_WHISPER_BASE_URL,
     model: process.env.ELICE_WHISPER_MODEL || DEFAULT_MODEL,
     timeoutMs: Number(process.env.ELICE_TIMEOUT_MS) || 120_000,

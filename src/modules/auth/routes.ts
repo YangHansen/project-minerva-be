@@ -26,6 +26,11 @@ import {
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const passwordPattern = /^(?=.*[A-Z])(?=.*\d).{8,128}$/
+const demoTokenPacks = {
+  starter: 10,
+  momentum: 30,
+  focus: 60,
+} as const
 
 async function publicUser(user: { _id: unknown; email: string; role: 'user' | 'admin'; tokenBalance: number }) {
   const profile = await UserProfile.findOne({ userId: user._id }).lean()
@@ -116,7 +121,27 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
       }),
     },
   )
-  .post('/api/auth/logout', async ({ request, set }) => {
+  .post(
+    '/api/billing/demo-topups',
+    async ({ request, body }) => {
+      requireTrustedMutationOrigin(request)
+      requireDatabase()
+      if (config.isProduction) {
+        throw new AppError(403, 'DEMO_CHECKOUT_DISABLED', 'Demo checkout is only available outside production')
+      }
+
+      const { userId } = await requireAuth(request)
+      const tokens = demoTokenPacks[body.packId]
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { $inc: { tokenBalance: tokens } },
+        { new: true },
+      )
+      assertFound(user, 'Account not found')
+      return { demo: true, creditedTokens: tokens, tokenBalance: user.tokenBalance }
+    },
+    { body: t.Object({ packId: t.Union([t.Literal('starter'), t.Literal('momentum'), t.Literal('focus')]) }) },
+  )  .post('/api/auth/logout', async ({ request, set }) => {
     await requireAuth(request)
     set.headers['set-cookie'] = expiredSessionCookie()
     return { success: true as const }
