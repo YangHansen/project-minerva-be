@@ -10,6 +10,7 @@ import { applicationRoutes } from './modules/applications/routes'
 import { checklistRoutes } from './modules/checklists/routes'
 import { documentRoutes } from './modules/documents/routes'
 import { ieltsRoutes } from './modules/ielts/routes'
+import { mentorsRoutes } from './modules/mentors/routes'
 import { createMinervaAiRoutes } from './modules/ai/routes'
 
 export const app = new Elysia({ name: 'minerva-api' })
@@ -88,6 +89,7 @@ export const app = new Elysia({ name: 'minerva-api' })
   .use(checklistRoutes)
   .use(documentRoutes)
   .use(ieltsRoutes)
+  .use(mentorsRoutes)
   .use(createMinervaAiRoutes())
 
 export type App = typeof app

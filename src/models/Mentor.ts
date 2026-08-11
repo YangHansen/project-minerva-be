@@ -14,9 +14,13 @@ const BookingSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   mentorId: { type: Schema.Types.ObjectId, ref: 'Mentor', required: true },
   dateTime: { type: Date, required: true },
-  status: { type: String, enum: ['pending', 'approved', 'rejected', 'completed'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'approved', 'rejected', 'cancelled', 'completed'], default: 'pending' },
   tokensCharged: { type: Number, required: true },
-  meetingLink: { type: String, default: null }
+  meetingLink: { type: String, default: null },
+  service: { type: String, default: '' },
+  date: { type: String, default: '' },
+  time: { type: String, default: '' },
+  notes: { type: String, default: '' },
 }, { timestamps: true });
 
 export const Mentor = models.Mentor || model('Mentor', MentorSchema);
