@@ -6,7 +6,7 @@ export const ieltsSeed = [
     title: 'Listening: Open University',
     instruction: 'Complete the sentences below. Write NO MORE THAN TWO WORDS for each answer.',
     content: "Paul: The other thing I wanted to ask you was, did you find it hard, studying with the Open University?\nRachel: You mean, because you're studying on your own, most of the time? ... Well, it took me a while to get used to it. I found I needed to maintain a high level of motivation because it's so different from school... Another thing was that I got very good at time-management because I had to fit time for studying round a full-time job... What makes it easier is that the degree is made up of modules, so you can take time off between them if you need to... Then even though you're mostly studying at home, remember you've got tutors to help you, and from time to time there are summer schools. They usually last a week. They're great because you meet all the other people struggling with the same things as you.",
-    audioUrl: 'https://drive.google.com/file/d/1jY5WI-hVvbyizkHDG_KbjLqjY1m3qX-K/view?usp=drive_link',
+    audioUrl: 'https://drive.google.com/uc?export=download&id=1jY5WI-hVvbyizkHDG_KbjLqjY1m3qX-K',
     questions: [
       { 
         questionType: 'fill_in_the_blank', 
@@ -41,7 +41,7 @@ export const ieltsSeed = [
     title: 'Listening: Life on Other Planets',
     instruction: 'Complete the flow-chart below. Write NO MORE THAN TWO WORDS for each answer.',
     content: "A: So we've talked about how we find evidence of past life on earth, and in the second part of our presentation, we want to demonstrate in a practical way how to find out if there has ever been life on other planets... the procedure begins by sending a spacecraft to land on the planet.\nB: Right, then a vehicle, called a rover, is sent out from the spacecraft... Then the rover drills down under the surface to collect a sample.\nA: Why does the sample have to come from underneath? ... Is it to stop contamination from the rover?\nB: No, the rover is clean. It's actually because of the atmosphere... the surface might be exposed to high levels of radiation... \nA: So at this point the soil and rocks that have been collected would need to be analysed, to see if there are any signs of fossils.\nB: Right... Once that's been done, the sample is crushed into a fine powder... the sample has to be exposed to heat, and then run through a mass spectrometer.\nA: We'll need to explain that this is an instrument used to measure the weight and concentration of atoms and molecules.\nB: Yes. This level of analysis is necessary to search for microscopic signs of life, much smaller than fossils, such as microbes.",
-    audioUrl: 'https://drive.google.com/file/d/1Li82YC9D_uVJQRHCRoFAcRAiNEaisOdr/view?usp=drive_link',
+    audioUrl: 'https://drive.google.com/uc?export=download&id=1Li82YC9D_uVJQRHCRoFAcRAiNEaisOdr',
     questions: [
       { 
         questionType: 'fill_in_the_blank', 
@@ -82,7 +82,7 @@ export const ieltsSeed = [
     title: 'Listening: Learner Persistence',
     instruction: 'Complete the table below. Write NO MORE THAN TWO WORDS for each answer.',
     content: "Lecturer: The second section of my questionnaire looked at learner persistence under three main headings: social and environmental factors, other factors, and intrinsic or personal characteristics... At the first level... As regards other factors, students are heartened not so much by high grades but by what they regard as success in study. And for personal characteristics, many respondents reported that they took pleasure in challenge...\nAt the second level of importance... in the second column, other factors, a number of people said that what was of most importance was decent health...\nAnd then onto the third level. Under social factors, several respondents talked about good relationships with their tutors... And finally under column three, they identified an ability to juggle several roles - what we might call their capacity for multi-tasking.",
-    audioUrl: 'https://drive.google.com/file/d/1zhtzz2YgUUJWC6wrDCrC_KJfO8GZaMcJ/view?usp=drive_link',
+    audioUrl: 'https://drive.google.com/uc?export=download&id=1zhtzz2YgUUJWC6wrDCrC_KJfO8GZaMcJ',
     questions: [
       { 
         questionType: 'fill_in_the_blank', 
@@ -117,7 +117,7 @@ export const ieltsSeed = [
     title: 'Listening: Second-hand Furniture',
     instruction: 'Complete the notes below. Write NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.',
     content: "M: Oh hello... Was it the one for second-hand furniture?\nF: That's right, yes... Mainly the dining room furniture, specially the table. Has that gone yet?\nM: Not yet... Well, it's round... It seats about six.\nF: And how old is it?\nM: let's see...ten years? No it must be twelve by now.\nF: And the advertisement said you were asking £25 for that?\nM: That's right.\nF: And do you still have the dining chairs?\nM: Yes. It's a set of four chairs... That's green but you could change it of course... And we're asking £20 for those.\nF: Right. And the other thing I wanted to ask about was the desk. Can you tell me roughly how long the top is...?\nM: Let's see...It's 75 cm high I know, and the length's err 1 metre 20. And it's 40 cm deep. It's got 3 drawers - the top one's got a lock so you can keep your valuables there.\nF: And you were asking £50.00 for that?\nM: Yes... But if you want to take the other things too, I could let you have it for forty.",
-    audioUrl: 'https://drive.google.com/file/d/17X1QEDAaOmUPYaJNLrA25QS5YQELaH9B/view?usp=drive_link',
+    audioUrl: 'https://drive.google.com/uc?export=download&id=17X1QEDAaOmUPYaJNLrA25QS5YQELaH9B',
     questions: [
       { 
         questionType: 'fill_in_the_blank', 
@@ -203,7 +203,7 @@ export const ieltsSeed = [
     title: 'Writing Task 1: Bar Graph',
     instruction: 'You should spend about 20 minutes on this task. Write at least 150 words.',
     content: 'The bar chart shows the expenditure of two countries on consumer goods in 2010.',
-    graphUrl: 'https://drive.google.com/file/d/13vCSBEwgUriL8sF2yQxpSXtR5sgEAFnU/view?usp=sharing',
+    graphUrl: 'https://drive.google.com/uc?export=download&id=13vCSBEwgUriL8sF2yQxpSXtR5sgEAFnU',
     questions: [
       {
         questionType: 'essay',
@@ -270,14 +270,14 @@ export const ieltsSeed = [
   // ==========================================
   // ACADEMIC TEST 2
   // ==========================================
-    {
+  {
     setNumber: 2,
     order: 5,
     section: 'listening',
     title: 'Listening: Town Tour',
     instruction: 'Complete the sentences below based on the map directions. Write NO MORE THAN THREE WORDS for each answer.',
     content: "Guide: All right, those of you who want to go on the ride, please just wait a moment while I give some directions to the rest of the group. You'll notice that the Welcome Centre, where we are, is located on the southwest corner of Elm and Main Streets. For those of you interested in doing a little shopping... on the other side of Main Street you can see a wonderful quilt shop. These are handmade blankets... The next street up Main is Ash Street. On the Southside of Ash, is a handicrafts museum worth a look... On Main Street, in the middle of the block past Ash but before Oak Street is a traditional one-room school house. Please be as quiet as possible and do not take photographs, as school is in session.",
-    audioUrl: 'https://drive.google.com/file/d/1ZPabunorVV-PnlF-W8ZFIaxT9XKhmFhH/view?usp=drive_link',
+    audioUrl: 'https://drive.google.com/uc?export=download&id=1ZPabunorVV-PnlF-W8ZFIaxT9XKhmFhH',
     questions: [
       { 
         questionType: 'fill_in_the_blank', 
@@ -306,7 +306,7 @@ export const ieltsSeed = [
     title: 'Listening: Library Services',
     instruction: 'Choose the correct letter, A, B or C.',
     content: "M: And we also hold regular events at the library.\nF: Do I have to book for any of the events?\nM: No, that's not necessary. When you come into the library, do make sure you pick up a copy of the Guide to the Library... it doesn't include things like the special events because they always change, but inside you'll find a plan of the library, showing where, for example, the reading room is. It also tells you about our café in the basement... Oh, and if you can't find what you want on the shelf, there's a section about how to reserve books that tells you what you need to do.",
-    audioUrl: 'https://drive.google.com/file/d/16KOVyxmyaGN_3TqEsqecere7pzGbHnfr/view?usp=drive_link',
+    audioUrl: 'https://drive.google.com/uc?export=download&id=16KOVyxmyaGN_3TqEsqecere7pzGbHnfr',
     questions: [
       { 
         questionType: 'multiple_choice', 
@@ -331,7 +331,7 @@ export const ieltsSeed = [
     title: 'Listening: Dissertation Progress',
     instruction: 'Choose the correct letter, A, B or C.',
     content: "M1: Right, Judy, this week it's your turn to bring us up to date on your dissertation. So?\nF1: I've finished the basic research and planning... I've chosen to study everyday life in the East End of London in the early twentieth century... you might think it's an obvious subject to pick. But in fact I was brought up there, and I've always been interested in finding out how the area shaped my upbringing.\nF2: What materials did you use in your research?\nF1: ...the bulk of my work is based on the elderly people from the area who I managed to contact and arrange to meet, and then recorded as they talked to me...\nM2: Was it difficult to get enough source material?\nF1: Not a bit. The problems started when I thought I had enough material, and sat down to devise a workable filing system. It took ages, but I was really glad of it when I came to writing the draft.",
-    audioUrl: 'https://drive.google.com/file/d/1L2KDz8uVOPESRkxmBnh5y22lJEwLUW93/view?usp=drive_link',
+    audioUrl: 'https://drive.google.com/uc?export=download&id=1L2KDz8uVOPESRkxmBnh5y22lJEwLUW93',
     questions: [
       { 
         questionType: 'multiple_choice', 
@@ -363,7 +363,7 @@ export const ieltsSeed = [
     title: 'Listening: Fashion Industry Careers',
     instruction: 'Answer the questions below. Write NO MORE THAN TWO WORDS for each answer.',
     content: "Speaker: Good afternoon everybody... I'd like to talk to you about a career in the fashion industry, then about the kind of people we're looking for at Pacific Clothing... Right now we're on the lookout for scientists, particularly to work with the dyes we use to colour fabrics. And to design the patterns and choose the colours... we have a strong design team. We're not looking for any new designers at present but vacancies may arise in future. However, at the moment we are looking for engineers to work in the production department. Just like any company, we too need practically-minded people to make sure that we're not spending more than we're earning, so we're currently recruiting accountants. They're not usually associated with fashion but let me tell you, they perform a vital task.",
-    audioUrl: 'https://drive.google.com/file/d/1b4MkN5MgyxBR4mGdE2ECFNY93pYbwZPZ/view?usp=drive_link',
+    audioUrl: 'https://drive.google.com/uc?export=download&id=1b4MkN5MgyxBR4mGdE2ECFNY93pYbwZPZ',
     questions: [
       { 
         questionType: 'fill_in_the_blank', 
@@ -407,7 +407,7 @@ export const ieltsSeed = [
     title: 'Writing Task 1: Line Graph',
     instruction: 'You should spend about 20 minutes on this task. Write at least 150 words.',
     content: 'The graph below shows the consumption of three kinds of spreads between 1981 and 2007.',
-    graphUrl: 'https://drive.google.com/file/d/1LZhJ74zr8Bzzccuv746YlYeWhNzNuvkB/view?usp=sharing',
+    graphUrl: 'https://drive.google.com/uc?export=download&id=1LZhJ74zr8Bzzccuv746YlYeWhNzNuvkB',
     questions: [
       {
         questionType: 'essay',
@@ -513,7 +513,7 @@ export const ieltsSeed = [
     title: 'Writing Task 1: Table',
     instruction: 'You should spend about 20 minutes on this task. Write at least 150 words.',
     content: 'The table shows the proportion of income spent on 4 common items in the UK in 1998.',
-    graphUrl: 'https://drive.google.com/file/d/1Q2z8foAYE_O0DvqVlmV5LEKmOjwp6zHo/view?usp=sharing',
+    graphUrl: 'https://drive.google.com/uc?export=download&id=1Q2z8foAYE_O0DvqVlmV5LEKmOjwp6zHo',
     questions: [
       {
         questionType: 'essay',
@@ -617,7 +617,7 @@ export const ieltsSeed = [
     section: 'writing',
     title: 'Writing Task 1: Line Graph',
     instruction: 'You should spend about 20 minutes on this task. Write at least 150 words.',
-    graphUrl: 'https://drive.google.com/file/d/1pqq1sAjLMreiQaP9dXxLdkDWrQBrRDBG/view?usp=sharing',
+    graphUrl: 'https://drive.google.com/uc?export=download&id=1pqq1sAjLMreiQaP9dXxLdkDWrQBrRDBG',
     content: 'The line graph below shows the consumption of 4 kinds of meat in a European country from 1979 to 2004.',
     questions: [
       {
