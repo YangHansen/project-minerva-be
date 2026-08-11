@@ -1,7 +1,7 @@
 import { AppError } from '../../lib/errors'
 import { BoundedRateLimiter, ConcurrencyLimiter } from '../../lib/in-memory-limits'
 
-type AuthOperation = 'register' | 'login'
+type AuthOperation = 'register' | 'login' | 'forgot'
 
 const registerAttempts = new BoundedRateLimiter({
   limit: 6,
@@ -12,6 +12,12 @@ const registerAttempts = new BoundedRateLimiter({
 const loginAttempts = new BoundedRateLimiter({
   limit: 15,
   windowMs: 5 * 60_000,
+  maxEntries: 10_000,
+})
+
+const forgotAttempts = new BoundedRateLimiter({
+  limit: 5,
+  windowMs: 15 * 60_000,
   maxEntries: 10_000,
 })
 
@@ -28,7 +34,7 @@ const clientKey = (request: Request, remoteAddress?: string): string => {
 }
 
 export const enforceAuthAttemptLimit = (request: Request, operation: AuthOperation, remoteAddress?: string): void => {
-  const limiter = operation === 'register' ? registerAttempts : loginAttempts
+  const limiter = operation === 'register' ? registerAttempts : operation === 'login' ? loginAttempts : forgotAttempts
   const decision = limiter.consume(clientKey(request, remoteAddress))
   if (!decision.allowed) {
     throw new AppError(

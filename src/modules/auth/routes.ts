@@ -23,6 +23,7 @@ import {
   readOAuthNext,
   googleAuthUrl,
 } from './google'
+import { assertEmailConfigured, createResetToken, sendPasswordResetEmail, verifyResetToken } from './reset'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const passwordPattern = /^(?=.*[A-Z])(?=.*\d).{8,128}$/
@@ -141,7 +142,7 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
       return { demo: true, creditedTokens: tokens, tokenBalance: user.tokenBalance }
     },
     { body: t.Object({ packId: t.Union([t.Literal('starter'), t.Literal('momentum'), t.Literal('focus')]) }) },
-  )  .post('/api/auth/logout', async ({ request, set }) => {
+  ).post('/api/auth/logout', async ({ request, set }) => {
     await requireAuth(request)
     set.headers['set-cookie'] = expiredSessionCookie()
     return { success: true as const }
@@ -200,3 +201,52 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
     assertFound(user, 'Account not found')
     return { user: await publicUser(user) }
   })
+  .post(
+    '/api/auth/forgot-password',
+    async ({ request, server, body }) => {
+      requireDatabase()
+      requireTrustedMutationOrigin(request)
+      enforceAuthAttemptLimit(request, 'forgot', server?.requestIP(request)?.address)
+      assertEmailConfigured()
+      const email = body.email.trim().toLowerCase()
+      const user = await User.findOne({ email }).select('+passwordHash')
+      // Only email accounts with a password; reply identically either way to avoid account enumeration.
+      if (user?.passwordHash) {
+        const token = await createResetToken(String(user._id))
+        await sendPasswordResetEmail(email, `${config.frontendOrigin}/reset-password?token=${encodeURIComponent(token)}`)
+      }
+      return { success: true as const }
+    },
+    {
+      body: t.Object({ email: t.String({ minLength: 3, maxLength: 254 }) }),
+    },
+  )
+  .get('/api/auth/reset-password', async ({ query }) => {
+    requireDatabase()
+    const userId = await verifyResetToken(typeof query.token === 'string' ? query.token : '')
+    if (!userId) throw new AppError(400, 'INVALID_RESET_TOKEN', 'This reset link is invalid or has expired')
+    return { success: true as const }
+  })
+  .post(
+    '/api/auth/reset-password',
+    async ({ request, body }) => {
+      requireDatabase()
+      const userId = await verifyResetToken(body.token)
+      if (!userId) throw new AppError(400, 'INVALID_RESET_TOKEN', 'This reset link is invalid or has expired')
+      if (!passwordPattern.test(body.password)) {
+        throw new AppError(422, 'WEAK_PASSWORD', 'Password must contain 8+ characters, one uppercase letter, and one number')
+      }
+      const user = await User.findById(userId).select('+passwordHash')
+      // Google-only accounts have no password; a reset link must never mint one for them.
+      if (!user?.passwordHash) throw new AppError(400, 'INVALID_RESET_TOKEN', 'This reset link is invalid or has expired')
+      user.passwordHash = await withArgon2Capacity(() => Bun.password.hash(body.password, { algorithm: 'argon2id' }))
+      await user.save()
+      return { success: true as const }
+    },
+    {
+      body: t.Object({
+        token: t.String({ minLength: 1, maxLength: 512 }),
+        password: t.String({ minLength: 8, maxLength: 128 }),
+      }),
+    },
+  )

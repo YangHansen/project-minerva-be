@@ -85,6 +85,8 @@ export const config = Object.freeze({
   googleRedirectUri:
     readUrl('GOOGLE_REDIRECT_URI', Bun.env.GOOGLE_REDIRECT_URI) ||
     'http://localhost:3000/api/auth/google/callback',
+  resendApiKey: Bun.env.RESEND_API_KEY?.trim() ?? '',
+  resendFrom: Bun.env.RESEND_FROM?.trim() ?? '',
   uploadDirectory: Bun.env.UPLOAD_DIRECTORY?.trim() || './data/uploads',
   uploadMaxBytes: readInteger('UPLOAD_MAX_BYTES', Bun.env.UPLOAD_MAX_BYTES, 25_000_000, 1_024, 100_000_000),
 })
