@@ -1,8 +1,8 @@
 import { Elysia, t } from 'elysia'
-import { requireAuth } from '../../auth/session'
+import { requireAuth, requireTrustedMutationOrigin } from '../../auth/session'
 import { requireDatabase } from '../../db/mongo'
 import { AppError, assertFound } from '../../lib/errors'
-import { IELTSExercise, IELTSSubmission } from '../../models'
+import { IELTSExercise, IELTSSubmission, User } from '../../models'
 import { scoreAnswers } from './scoring'
 
 type IeltsSection = 'reading' | 'listening' | 'writing' | 'speaking'
@@ -121,6 +121,67 @@ export const ieltsRoutes = new Elysia({ name: 'ielts-routes' })
     {
       query: t.Object({
         limit: t.Optional(t.String({ pattern: '^\\d+$' })),
+      }),
+    },
+  )
+  .get('/api/ielts/progress', async ({ request }) => {
+    requireDatabase()
+    const { userId } = await requireAuth(request)
+    const user = await User.findById(userId).lean()
+    return {
+      completedIeltsSimulationSets: user?.completedIeltsSimulationSets ?? [],
+      ieltsPracticeResults: (user?.ieltsPracticeResults ?? []).map((item: Record<string, any>) => ({
+        scholarshipId: String(item.scholarshipId || ''),
+        type: String(item.type || ''),
+        score: Number(item.score || 0),
+        completedAt: item.completedAt ? new Date(item.completedAt).toISOString() : new Date().toISOString(),
+        explanation: String(item.explanation || ''),
+      })),
+    }
+  })
+  .put(
+    '/api/ielts/progress',
+    async ({ request, body }) => {
+      requireDatabase()
+      requireTrustedMutationOrigin(request)
+      const { userId } = await requireAuth(request)
+      const updated = await User.findByIdAndUpdate(
+        userId,
+        {
+          $set: {
+            completedIeltsSimulationSets: body.completedIeltsSimulationSets,
+            ieltsPracticeResults: body.ieltsPracticeResults.map((item) => ({
+              scholarshipId: item.scholarshipId || '',
+              type: item.type,
+              score: item.score,
+              completedAt: item.completedAt ? new Date(item.completedAt) : new Date(),
+              explanation: item.explanation || '',
+            })),
+          },
+        },
+        { new: true },
+      ).lean()
+      return {
+        completedIeltsSimulationSets: updated?.completedIeltsSimulationSets ?? [],
+        ieltsPracticeResults: (updated?.ieltsPracticeResults ?? []).map((item: Record<string, any>) => ({
+          scholarshipId: String(item.scholarshipId || ''),
+          type: String(item.type || ''),
+          score: Number(item.score || 0),
+          completedAt: item.completedAt ? new Date(item.completedAt).toISOString() : new Date().toISOString(),
+          explanation: String(item.explanation || ''),
+        })),
+      }
+    },
+    {
+      body: t.Object({
+        completedIeltsSimulationSets: t.Array(t.Number()),
+        ieltsPracticeResults: t.Array(t.Object({
+          scholarshipId: t.Optional(t.String()),
+          type: t.String(),
+          score: t.Number(),
+          completedAt: t.String(),
+          explanation: t.Optional(t.String()),
+        })),
       }),
     },
   )
