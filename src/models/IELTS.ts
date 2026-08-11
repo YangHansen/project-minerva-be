@@ -5,6 +5,7 @@ const IELTSExerciseSchema = new Schema({
   order: { type: Number, required: true },
   section: { type: String, enum: ['reading', 'listening', 'writing'], required: true },
   title: { type: String, required: true },
+  instruction: { type: String},
   content: { type: String, required: true },
   graphUrl: { type: String },
   audioUrl: { type: String },
