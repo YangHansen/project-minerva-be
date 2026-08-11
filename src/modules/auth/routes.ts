@@ -8,10 +8,21 @@ import {
   expiredSessionCookie,
   requireAuth,
   requireTrustedMutationOrigin,
+  readRequestCookie,
   sessionCookie,
 } from '../../auth/session'
 import { config } from '../../config/env'
 import { enforceAuthAttemptLimit, withArgon2Capacity } from './abuse-control'
+import {
+  assertGoogleConfigured,
+  createOAuthStateToken,
+  exchangeCodeForToken,
+  fetchGoogleProfile,
+  OAUTH_STATE_COOKIE,
+  oauthStateCookie,
+  readOAuthNext,
+  googleAuthUrl,
+} from './google'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const passwordPattern = /^(?=.*[A-Z])(?=.*\d).{8,128}$/
@@ -83,8 +94,10 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
       requireDatabase()
       const email = body.email.trim().toLowerCase()
       const user = await User.findOne({ email }).select('+passwordHash')
-      const passwordMatches = user
-        ? await withArgon2Capacity(() => Bun.password.verify(body.password, user.passwordHash))
+      // Google-created users have no passwordHash; they must sign in via Google.
+      const passwordHash = user?.passwordHash
+      const passwordMatches = passwordHash
+        ? await withArgon2Capacity(() => Bun.password.verify(body.password, passwordHash))
         : false
       if (!user || !passwordMatches) {
         throw new AppError(401, 'INVALID_CREDENTIALS', 'Email or password is incorrect')
@@ -107,6 +120,53 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
     await requireAuth(request)
     set.headers['set-cookie'] = expiredSessionCookie()
     return { success: true as const }
+  })
+  .get('/api/auth/google', async ({ query, set }) => {
+    requireDatabase()
+    assertGoogleConfigured()
+    const next = typeof query.next === 'string' && /^\/(?!\/)/.test(query.next) ? query.next : ''
+    const state = await createOAuthStateToken(next)
+    set.headers['set-cookie'] = oauthStateCookie(state)
+    set.status = 302
+    set.headers['location'] = googleAuthUrl(state)
+  })
+  .get('/api/auth/google/callback', async ({ request, query, set }) => {
+    requireDatabase()
+    if (query.error) {
+      set.status = 302
+      set.headers['location'] = `${config.frontendOrigin}/login?error=google_denied`
+      return
+    }
+    const state = typeof query.state === 'string' ? query.state : ''
+    const stateCookie = readRequestCookie(request, OAUTH_STATE_COOKIE)
+    if (!state || !stateCookie || state !== stateCookie) {
+      throw new AppError(400, 'INVALID_OAUTH_STATE', 'The OAuth request is invalid or has expired')
+    }
+    if (typeof query.code !== 'string' || !query.code) {
+      throw new AppError(400, 'MISSING_OAUTH_CODE', 'Google did not return an authorization code')
+    }
+    const accessToken = await exchangeCodeForToken(query.code)
+    const profile = await fetchGoogleProfile(accessToken)
+    const email = profile.email.trim().toLowerCase()
+
+    let user = await User.findOne({ email })
+    if (!user) {
+      user = await User.create({ email })
+      try {
+        const base = (profile.name || email.split('@')[0] || '').trim()
+        await UserProfile.create({ userId: user._id, name: base.length >= 2 ? base.slice(0, 120) : 'Scholar' })
+      } catch (error) {
+        await User.deleteOne({ _id: user._id })
+        throw error
+      }
+    }
+
+    const token = await createSessionToken({ userId: String(user._id), role: user.role })
+    // ponytail: the state cookie expires itself in 10 minutes; no need to clear it here.
+    set.headers['set-cookie'] = sessionCookie(token)
+    const next = await readOAuthNext(state)
+    set.status = 302
+    set.headers['location'] = `${config.frontendOrigin}/oauth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`
   })
   .get('/api/auth/me', async ({ request }) => {
     requireDatabase()

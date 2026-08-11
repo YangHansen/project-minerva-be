@@ -91,6 +91,10 @@ function readCookie(request: Request, name: string) {
   return null
 }
 
+export function readRequestCookie(request: Request, name: string) {
+  return readCookie(request, name)
+}
+
 export async function getAuthSession(request: Request) {
   const token = readCookie(request, SESSION_COOKIE_NAME)
   return token ? verifySessionToken(token) : null
@@ -115,8 +119,12 @@ function sessionCookieAttributes(maxAge: number) {
   return `Path=/; HttpOnly; SameSite=${sameSite}; Max-Age=${maxAge}${secure}`
 }
 
+export function authCookie(name: string, token: string, maxAge: number) {
+  return `${name}=${encodeURIComponent(token)}; ${sessionCookieAttributes(maxAge)}`
+}
+
 export function sessionCookie(token: string, maxAge = config.sessionTtlSeconds) {
-  return `${SESSION_COOKIE_NAME}=${encodeURIComponent(token)}; ${sessionCookieAttributes(maxAge)}`
+  return authCookie(SESSION_COOKIE_NAME, token, maxAge)
 }
 
 export function expiredSessionCookie() {

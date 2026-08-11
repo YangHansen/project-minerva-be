@@ -3,7 +3,7 @@ import { type InferSchemaType, type Model, Schema, model, models } from 'mongoos
 const UserSchema = new Schema(
   {
     email: { type: String, unique: true, required: true, lowercase: true, trim: true, index: true },
-    passwordHash: { type: String, required: true, select: false },
+    passwordHash: { type: String, select: false },
     role: { type: String, enum: ['user', 'admin'], default: 'user', required: true },
     tokenBalance: { type: Number, default: 12, min: 0, required: true },
   },

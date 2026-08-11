@@ -80,6 +80,11 @@ export const config = Object.freeze({
   eliceTerraBaseUrl: readUrl('ELICE_TERRA_BASE_URL', Bun.env.ELICE_TERRA_BASE_URL),
   eliceWhisperBaseUrl: readUrl('ELICE_WHISPER_BASE_URL', Bun.env.ELICE_WHISPER_BASE_URL),
   eliceTimeoutMs: readInteger('ELICE_TIMEOUT_MS', Bun.env.ELICE_TIMEOUT_MS, 120_000, 1_000, 300_000),
+  googleClientId: Bun.env.GOOGLE_CLIENT_ID?.trim() ?? '',
+  googleClientSecret: Bun.env.GOOGLE_CLIENT_SECRET?.trim() ?? '',
+  googleRedirectUri:
+    readUrl('GOOGLE_REDIRECT_URI', Bun.env.GOOGLE_REDIRECT_URI) ||
+    'http://localhost:3000/api/auth/google/callback',
   uploadDirectory: Bun.env.UPLOAD_DIRECTORY?.trim() || './data/uploads',
   uploadMaxBytes: readInteger('UPLOAD_MAX_BYTES', Bun.env.UPLOAD_MAX_BYTES, 25_000_000, 1_024, 100_000_000),
 })
