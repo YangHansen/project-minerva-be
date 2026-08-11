@@ -1,14 +1,14 @@
 import { app } from './app'
 import { config } from './config/env'
 import { connectDatabase, disconnectDatabase } from './db/mongo'
-import { seedScholarships, seedIelts } from './db/seed'
+import { seedScholarships, seedIelts, seedMentors } from './db/seed'
 
 async function start() {
   const connected = await connectDatabase()
   if (connected) {
     try {
-      await Promise.all([seedScholarships(), seedIelts()])
-      console.info('[database] scholarship catalog and IELTS content are ready')
+      await Promise.all([seedScholarships(), seedIelts(), seedMentors()])
+      console.info('[database] scholarship catalog, IELTS content, and mentor catalog are ready')
     } catch (error) {
       if (config.isProduction) throw error
       console.warn('[database] seed failed', error)
