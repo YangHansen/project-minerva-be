@@ -7,7 +7,7 @@ async function start() {
   const connected = await connectDatabase()
   if (connected) {
     try {
-      await Promise.all([seedScholarships(), seedIelts(), seedMentors()])
+      await Promise.all([seedIelts(), seedMentors()])
       console.info('[database] scholarship catalog, IELTS content, and mentor catalog are ready')
     } catch (error) {
       if (config.isProduction) throw error
