@@ -35,7 +35,8 @@ function exerciseJson(exercise: Record<string, any>): IeltsExercise {
     order: exercise.order,
     questions: (exercise.questions || []).map((question: Record<string, any>) => ({
       questionText: question.questionText,
-      type: question.type || 'gap-fill',
+      // ponytail: DB stores questionType; true_false_not_given/essay intentionally fall back to free-text input
+      type: ({ multiple_choice: 'mcq', matching: 'matching' } as Record<string, 'mcq' | 'matching'>)[question.questionType] || 'gap-fill',
       options: question.options || [],
     })),
   }
