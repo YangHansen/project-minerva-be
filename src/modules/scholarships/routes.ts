@@ -1,3 +1,4 @@
+import { Types } from 'mongoose'
 import { Elysia, t } from 'elysia'
 import { getAuthSession, requireAuth } from '../../auth/session'
 import { requireDatabase } from '../../db/mongo'
@@ -97,8 +98,10 @@ function scholarshipJson(scholarship: Record<string, any>, match?: ReturnType<ty
   }
 }
 
-async function resolveScholarship(slug: string) {
-  const scholarship = await Scholarship.findOne({ slug: slug.toLowerCase() }).lean()
+async function resolveScholarship(id: string) {
+  // ponytail: _id-only lookup, old slug links break by design
+  if (!Types.ObjectId.isValid(id)) throw new AppError(404, 'NOT_FOUND', 'Scholarship not found')
+  const scholarship = await Scholarship.findOne({ _id: id }).lean()
   assertFound(scholarship, 'Scholarship not found')
   return scholarship as Record<string, any>
 }
@@ -149,20 +152,20 @@ export const scholarshipRoutes = new Elysia({ name: 'scholarship-routes' })
       }),
     },
   )
-  .get('/api/scholarships/:slug/match', async ({ request, params }) => {
+  .get('/api/scholarships/:id/match', async ({ request, params }) => {
     requireDatabase()
     const { userId } = await requireAuth(request)
     const [scholarship, profile] = await Promise.all([
-      resolveScholarship(params.slug),
+      resolveScholarship(params.id),
       UserProfile.findOne({ userId }).lean(),
     ])
     if (!profile) throw new AppError(409, 'PROFILE_REQUIRED', 'Complete your profile to calculate a match')
     const match = calculateMatch(scholarship, profile as unknown as Record<string, any>)
-    return { scholarshipId: scholarship.slug, matchPercentage: match.score, reasons: match.reasons, gaps: match.gaps }
+    return { scholarshipId: String(scholarship._id), matchPercentage: match.score, reasons: match.reasons, gaps: match.gaps }
   })
-  .get('/api/scholarships/:slug', async ({ request, params }) => {
+  .get('/api/scholarships/:id', async ({ request, params }) => {
     requireDatabase()
-    const [scholarship, session] = await Promise.all([resolveScholarship(params.slug), getAuthSession(request)])
+    const [scholarship, session] = await Promise.all([resolveScholarship(params.id), getAuthSession(request)])
     const profile = session ? await UserProfile.findOne({ userId: session.userId }).lean() : null
     return { scholarship: scholarshipJson(scholarship, calculateMatch(scholarship, profile as Record<string, any> | null)) }
   })
