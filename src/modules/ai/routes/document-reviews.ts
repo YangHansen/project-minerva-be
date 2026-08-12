@@ -196,6 +196,135 @@ export const createDocumentReviewRoutes = ({ getAi }: AiRouteDependencies) =>
         }),
       },
     )
+    .post(
+      '/api/documents/:id/refine',
+      async ({ request, params, body }) => {
+        const { userId } = await requireAuth(request)
+        const document = await Document.findOne({ _id: params.id, userId })
+          .select('_id')
+          .lean() as unknown as OwnedDocument | null
+        if (!document) throw new AppError(404, 'DOCUMENT_NOT_FOUND', 'Document not found')
+
+        const contentText = stripHtml(body.content)
+        if (!contentText) throw new AppError(422, 'EMPTY_DOCUMENT', 'Add document content before requesting a refine')
+        const instruction = body.instruction.trim()
+        if (!instruction) throw new AppError(422, 'EMPTY_INSTRUCTION', 'Describe what to refine')
+        const scholarship = await resolveScholarship(body.scholarshipId)
+        const context = scholarshipContext(scholarship as Record<string, unknown> | null)
+
+        const paidResult = await runPaidAiOperation(userId, () =>
+          getAi().refineDocument({
+            title: body.title,
+            instruction,
+            prompt: body.prompt?.trim() || undefined,
+            content: contentText,
+            scholarshipContext: context,
+          }),
+        ).catch(async (error) => {
+          await recordFailedUsage({
+            userId,
+            operation: 'document_refine',
+            model: process.env.ELICE_TERRA_MODEL || 'gpt-5.6-terra',
+            error,
+          })
+          return throwRouteError(error)
+        })
+        const result = paidResult.value
+        await recordCompletedUsage({
+          userId,
+          operation: 'document_refine',
+          metadata: result.metadata,
+        })
+
+        return {
+          refine: {
+            summary: result.summary,
+            changes: result.changes,
+          },
+          tokenBalance: paidResult.tokenBalance,
+        }
+      },
+      {
+        body: t.Object({
+          content: t.String({ minLength: 1, maxLength: 1_000_000 }),
+          title: t.String({ minLength: 1, maxLength: 300 }),
+          instruction: t.String({ minLength: 1, maxLength: 1_000 }),
+          prompt: t.Optional(t.String({ maxLength: 4_000 })),
+          scholarshipId: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
+        }),
+      },
+    )
+    .post(
+      '/api/documents/:id/consult',
+      async ({ request, params, body }) => {
+        const { userId } = await requireAuth(request)
+        const document = await Document.findOne({ _id: params.id, userId })
+          .select('_id')
+          .lean() as unknown as OwnedDocument | null
+        if (!document) throw new AppError(404, 'DOCUMENT_NOT_FOUND', 'Document not found')
+
+        const contentText = stripHtml(body.content)
+        if (!contentText) throw new AppError(422, 'EMPTY_DOCUMENT', 'Add document content before asking for consultation')
+        const message = body.message.trim()
+        if (!message) throw new AppError(422, 'EMPTY_MESSAGE', 'Ask a question or describe what you need')
+        const scholarship = await resolveScholarship(body.scholarshipId)
+        const context = scholarshipContext(scholarship as Record<string, unknown> | null)
+        const history = (body.history || [])
+          .slice(-20)
+          .map((entry) => ({
+            role: entry.role,
+            content: entry.content.trim(),
+          }))
+          .filter((entry) => entry.content)
+
+        const paidResult = await runPaidAiOperation(userId, () =>
+          getAi().consultDocument({
+            title: body.title,
+            message,
+            prompt: body.prompt?.trim() || undefined,
+            content: contentText,
+            scholarshipContext: context,
+            history,
+          }),
+        ).catch(async (error) => {
+          await recordFailedUsage({
+            userId,
+            operation: 'document_consult',
+            model: process.env.ELICE_TERRA_MODEL || 'gpt-5.6-terra',
+            error,
+          })
+          return throwRouteError(error)
+        })
+        const result = paidResult.value
+        await recordCompletedUsage({
+          userId,
+          operation: 'document_consult',
+          metadata: result.metadata,
+        })
+
+        return {
+          consult: {
+            reply: result.reply,
+            intent: result.intent,
+            refineInstruction: result.refineInstruction,
+          },
+          tokenBalance: paidResult.tokenBalance,
+        }
+      },
+      {
+        body: t.Object({
+          content: t.String({ minLength: 1, maxLength: 1_000_000 }),
+          title: t.String({ minLength: 1, maxLength: 300 }),
+          message: t.String({ minLength: 1, maxLength: 4_000 }),
+          prompt: t.Optional(t.String({ maxLength: 4_000 })),
+          scholarshipId: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
+          history: t.Optional(t.Array(t.Object({
+            role: t.Union([t.Literal('user'), t.Literal('assistant')]),
+            content: t.String({ minLength: 1, maxLength: 4_000 }),
+          }), { maxItems: 20 })),
+        }),
+      },
+    )
     .post('/api/documents/:id/suggestions/:suggestionId/accept', async ({ request, params }) => {
       const { userId } = await requireAuth(request)
       const document = await Document.findOne({ _id: params.id, userId })

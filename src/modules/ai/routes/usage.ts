@@ -28,6 +28,8 @@ export const createAiUsageRoutes = () =>
       const operations: AiOperation[] = [
         'chat',
         'document_review',
+        'document_refine',
+        'document_consult',
         'interview_questions',
         'interview_answer',
         'ielts_writing',

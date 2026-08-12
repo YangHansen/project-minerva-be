@@ -55,6 +55,7 @@ if (nodeEnv !== 'test' && (!configuredSessionSecret || insecureSessionSecrets.ha
 if (configuredSessionSecret && configuredSessionSecret.length < 32) {
   throw new Error('SESSION_SECRET must contain at least 32 characters')
 }
+const adminEmails = new Set((Bun.env.ADMIN_EMAILS ?? '').split(',').map((email) => email.trim().toLowerCase()).filter(Boolean))
 const cookieSameSite = readSameSite(Bun.env.COOKIE_SAME_SITE)
 const cookieSecure = readBoolean('COOKIE_SECURE', Bun.env.COOKIE_SECURE, nodeEnv === 'production')
 if (nodeEnv === 'production' && !cookieSecure) throw new Error('COOKIE_SECURE must be true in production')
@@ -68,6 +69,7 @@ export const config = Object.freeze({
   mongoUri: Bun.env.MONGODB_URI?.trim() ?? '',
   sessionSecret: configuredSessionSecret || 'test-only-minerva-session-secret-0000000000',
   cookieSameSite,
+  adminEmails,
   cookieSecure,
   sessionTtlSeconds: readInteger(
     'SESSION_TTL_SECONDS',
@@ -87,6 +89,5 @@ export const config = Object.freeze({
     'http://localhost:3000/api/auth/google/callback',
   resendApiKey: Bun.env.RESEND_API_KEY?.trim() ?? '',
   resendFrom: Bun.env.RESEND_FROM?.trim() ?? '',
-  uploadDirectory: Bun.env.UPLOAD_DIRECTORY?.trim() || './data/uploads',
   uploadMaxBytes: readInteger('UPLOAD_MAX_BYTES', Bun.env.UPLOAD_MAX_BYTES, 25_000_000, 1_024, 100_000_000),
 })

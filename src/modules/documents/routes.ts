@@ -1,16 +1,15 @@
 import { Elysia, t } from 'elysia'
 import mammoth from 'mammoth'
-import { mkdir, unlink } from 'node:fs/promises'
-import { dirname, extname, resolve, sep } from 'node:path'
 import { Types } from 'mongoose'
 import { requireAuth } from '../../auth/session'
 import { config } from '../../config/env'
 import { requireDatabase } from '../../db/mongo'
 import { AppError, assertFound } from '../../lib/errors'
+import { readDocumentUpload, removeDocumentUpload, storeDocumentUpload } from '../../lib/documentStorage'
 import { sanitizeEditorHtml, stripHtml } from '../../lib/serialize'
 import { Document, DocumentVersion } from '../../models/Document'
 import { DocumentAiReview } from '../ai/models'
-import { findOwnedApplication } from '../applications/service'
+import { ensureApplicationWorkspace, findOwnedApplication } from '../applications/service'
 import { createDocumentVersion, DOCUMENT_VERSION_LIMIT, normalizedDocumentContent, restoreDocumentVersion } from './service'
 
 const documentKind = t.Union([
@@ -22,15 +21,6 @@ const documentStatus = t.Union([t.Literal('missing'), t.Literal('draft'), t.Lite
 const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 const allowedUploadTypes = new Set([DOCX_MIME_TYPE])
 
-function storedUploadPath(storageKey: string) {
-  const root = resolve(config.uploadDirectory)
-  const target = resolve(root, storageKey)
-  if (target !== root && !target.startsWith(`${root}${sep}`)) {
-    throw new AppError(400, 'INVALID_UPLOAD_PATH', 'The stored document path is invalid')
-  }
-  return target
-}
-
 async function persistUpload(file: File, userId: string) {
   if (!file.size) throw new AppError(422, 'EMPTY_DOCUMENT_UPLOAD', 'Choose a non-empty document file')
   if (file.size > config.uploadMaxBytes) {
@@ -41,12 +31,12 @@ async function persistUpload(file: File, userId: string) {
   if (!allowedUploadTypes.has(mimeType) || !isDocx) {
     throw new AppError(415, 'UNSUPPORTED_DOCUMENT_TYPE', 'Upload a DOCX document (.docx)')
   }
-  const suffix = extname(file.name).toLowerCase().replace(/[^.a-z0-9]/g, '').slice(0, 12)
-  const storageKey = `${userId}/${crypto.randomUUID()}${suffix}`
-  const target = storedUploadPath(storageKey)
-  await mkdir(dirname(target), { recursive: true })
-  await Bun.write(target, file)
-  return { originalName: file.name.slice(0, 255), storageKey, mimeType, size: file.size }
+  return storeDocumentUpload({
+    file,
+    userId,
+    originalName: file.name.slice(0, 255),
+    mimeType,
+  })
 }
 
 async function extractDocxContent(file: File) {
@@ -64,12 +54,12 @@ async function extractDocxContent(file: File) {
     throw new AppError(422, 'DOCX_READ_FAILED', 'Minerva could not read this DOCX file. Try saving it again as a standard Word document.')
   }
 }
+
 async function removeStoredUpload(upload: { storageKey?: string } | null | undefined) {
   if (!upload?.storageKey) return
-  try { await unlink(storedUploadPath(upload.storageKey)) } catch (error) {
-    if (!(error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT')) throw error
-  }
+  await removeDocumentUpload(upload.storageKey)
 }
+
 const documentPage = t.Object({
   id: t.String({ minLength: 1, maxLength: 120 }),
   title: t.String({ minLength: 1, maxLength: 160 }),
@@ -150,6 +140,7 @@ export const documentRoutes = new Elysia({ name: 'document-routes' })
     requireDatabase()
     const { userId } = await requireAuth(request)
     const application = await findOwnedApplication(params.id, userId)
+    await ensureApplicationWorkspace(String(application._id), userId)
     const documents = await Document.find({ userId, applicationId: application._id }).sort({ order: 1, createdAt: 1 }).lean()
     const versionEntries = await Promise.all(documents.map(async (document) => [
       String(document._id),
@@ -239,7 +230,6 @@ export const documentRoutes = new Elysia({ name: 'document-routes' })
     {
       body: t.Object({
         file: t.File(),
-
         kind: t.Optional(documentKind),
         title: t.Optional(t.String({ maxLength: 240 })),
         description: t.Optional(t.String({ maxLength: 2_000 })),
@@ -259,10 +249,9 @@ export const documentRoutes = new Elysia({ name: 'document-routes' })
     const { userId } = await requireAuth(request)
     const document = await findOwnedDocument(params.id, userId)
     if (!document.upload) throw new AppError(404, 'DOCUMENT_FILE_NOT_FOUND', 'This document does not have an uploaded file')
-    const file = Bun.file(storedUploadPath(document.upload.storageKey))
-    if (!(await file.exists())) throw new AppError(404, 'DOCUMENT_FILE_NOT_FOUND', 'The uploaded file is no longer available')
+    const bytes = await readDocumentUpload(document.upload.storageKey)
     const filename = document.upload.originalName.replace(/[\r\n"]/g, '_')
-    return new Response(file, {
+    return new Response(bytes, {
       headers: {
         'Content-Type': document.upload.mimeType,
         'Content-Disposition': `attachment; filename="${filename}"`,

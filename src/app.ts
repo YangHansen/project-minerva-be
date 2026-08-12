@@ -12,6 +12,7 @@ import { documentRoutes } from './modules/documents/routes'
 import { ieltsRoutes } from './modules/ielts/routes'
 import { mentorsRoutes } from './modules/mentors/routes'
 import { createMinervaAiRoutes } from './modules/ai/routes'
+import { adminRoutes } from './modules/admin/routes'
 
 export const app = new Elysia({ name: 'minerva-api' })
   .use(cors({
@@ -91,5 +92,6 @@ export const app = new Elysia({ name: 'minerva-api' })
   .use(ieltsRoutes)
   .use(mentorsRoutes)
   .use(createMinervaAiRoutes())
+  .use(adminRoutes)
 
 export type App = typeof app

@@ -1,5 +1,7 @@
 import { AiError } from './errors'
 import type {
+  DocumentConsultResult,
+  DocumentRefineResult,
   DocumentReviewResult,
   IeltsSpeakingEvaluation,
   IeltsWritingEvaluation,
@@ -153,6 +155,47 @@ export const parseDocumentReview = (
         tone: expectEnum<SuggestionTone>(suggestion.tone, `suggestions[${index}].tone`, tones),
       }
     }),
+    metadata,
+  }
+}
+
+export const parseDocumentRefine = (
+  content: string,
+  metadata: ProviderMetadata,
+): DocumentRefineResult => {
+  const value = parseJsonObject(content)
+  if (!Array.isArray(value.changes)) invalidResponse('changes must be an array')
+  if (value.changes.length < 1 || value.changes.length > 8) {
+    invalidResponse('changes must contain between 1 and 8 items')
+  }
+
+  return {
+    summary: expectString(value.summary, 'summary', { max: 2_000 }),
+    changes: value.changes.map((item, index) => {
+      const change = expectRecord(item, `changes[${index}]`)
+      return {
+        originalText: expectString(change.originalText, `changes[${index}].originalText`, {
+          max: 4_000,
+        }),
+        replacement: expectString(change.replacement, `changes[${index}].replacement`, {
+          max: 4_000,
+        }),
+        reason: expectString(change.reason, `changes[${index}].reason`, { max: 500 }),
+      }
+    }),
+    metadata,
+  }
+}
+
+export const parseDocumentConsult = (
+  content: string,
+  metadata: ProviderMetadata,
+): DocumentConsultResult => {
+  const value = parseJsonObject(content)
+  return {
+    reply: expectString(value.reply, 'reply', { max: 4_000 }),
+    intent: expectEnum(value.intent, 'intent', ['advise', 'refine'] as const),
+    refineInstruction: expectString(value.refineInstruction, 'refineInstruction', { max: 1_000 }),
     metadata,
   }
 }

@@ -4,7 +4,7 @@ import { Application } from '../../models/Application'
 import { ChecklistItem } from '../../models/ChecklistItem'
 import { Document } from '../../models/Document'
 import { Scholarship } from '../../models/Scholarship'
-import { defaultChecklistItems, defaultDocuments } from './defaults'
+import { defaultChecklistItems, defaultDocuments, obsoleteDocumentBlueprintKeys } from './defaults'
 import { scholarshipJson } from '../scholarships/routes'
 
 export async function findOwnedApplication(applicationId: string, userId: string) {
@@ -42,6 +42,41 @@ export async function ensureApplicationWorkspace(applicationId: string, userId: 
       },
     }))),
   ])
+
+  await Document.deleteMany({
+    userId: userObjectId,
+    applicationId: applicationObjectId,
+    blueprintKey: { $in: [...obsoleteDocumentBlueprintKeys] },
+    status: 'missing',
+    $and: [
+      {
+        $or: [
+          { contentText: { $in: [null, ''] } },
+          { contentText: { $exists: false } },
+        ],
+      },
+      {
+        $or: [
+          { contentHtml: { $in: [null, '', '<p></p>', '<p><br></p>'] } },
+          { contentHtml: { $exists: false } },
+        ],
+      },
+      {
+        $or: [
+          { upload: null },
+          { upload: { $exists: false } },
+          { 'upload.originalName': { $in: [null, ''] } },
+        ],
+      },
+    ],
+  })
+
+  await ChecklistItem.deleteMany({
+    userId: userObjectId,
+    applicationId: applicationObjectId,
+    itemKey: 'transcript',
+    status: 'pending',
+  })
 }
 
 export async function applicationJson(application: Record<string, any>) {

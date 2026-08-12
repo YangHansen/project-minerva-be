@@ -1,6 +1,8 @@
 export type AiOperation =
   | 'chat'
   | 'document_review'
+  | 'document_refine'
+  | 'document_consult'
   | 'interview_questions'
   | 'interview_answer'
   | 'ielts_writing'
@@ -112,6 +114,25 @@ export interface DocumentReviewResult {
   metadata: ProviderMetadata
 }
 
+export interface DocumentRefineChange {
+  originalText: string
+  replacement: string
+  reason: string
+}
+
+export interface DocumentRefineResult {
+  summary: string
+  changes: DocumentRefineChange[]
+  metadata: ProviderMetadata
+}
+
+export interface DocumentConsultResult {
+  reply: string
+  intent: 'advise' | 'refine'
+  refineInstruction: string
+  metadata: ProviderMetadata
+}
+
 export interface InterviewQuestionDraft {
   text: string
   focus: string
@@ -188,6 +209,23 @@ export interface MinervaAI {
     content: string
     scholarshipContext?: string
   }): Promise<DocumentReviewResult>
+
+  refineDocument(input: {
+    title: string
+    instruction: string
+    prompt?: string
+    content: string
+    scholarshipContext?: string
+  }): Promise<DocumentRefineResult>
+
+  consultDocument(input: {
+    title: string
+    message: string
+    prompt?: string
+    content: string
+    scholarshipContext?: string
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>
+  }): Promise<DocumentConsultResult>
 
   generateInterview(input: {
     scholarshipName: string

@@ -70,6 +70,41 @@ export const documentReviewSchema: Record<string, unknown> = {
   },
 }
 
+export const documentRefineSchema: Record<string, unknown> = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['summary', 'changes'],
+  properties: {
+    summary: shortString,
+    changes: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 8,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['originalText', 'replacement', 'reason'],
+        properties: {
+          originalText: { type: 'string', minLength: 1, maxLength: 4_000 },
+          replacement: { type: 'string', minLength: 1, maxLength: 4_000 },
+          reason: { type: 'string', minLength: 1, maxLength: 500 },
+        },
+      },
+    },
+  },
+}
+
+export const documentConsultSchema: Record<string, unknown> = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reply', 'intent', 'refineInstruction'],
+  properties: {
+    reply: { type: 'string', minLength: 1, maxLength: 4_000 },
+    intent: { type: 'string', enum: ['advise', 'refine'] },
+    refineInstruction: { type: 'string', minLength: 1, maxLength: 1_000 },
+  },
+}
+
 export const interviewPlanSchema: Record<string, unknown> = {
   type: 'object',
   additionalProperties: false,

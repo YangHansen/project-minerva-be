@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { EliceTerraAdapter } from './adapters/elice-terra'
 import { EliceWhisperAdapter } from './adapters/elice-whisper'
 import { AiError } from './errors'
-import { parseDocumentReview } from './validation'
+import { parseDocumentRefine, parseDocumentReview } from './validation'
 
 const metadata = {
   provider: 'elice' as const,
@@ -40,6 +40,25 @@ describe('AI response validation', () => {
 
     expect(result.overall).toBe(82)
     expect(result.suggestions[0]?.priority).toBe('high')
+  })
+
+  it('parses a complete document refine', () => {
+    const result = parseDocumentRefine(
+      JSON.stringify({
+        summary: 'Tightened the opening and strengthened one impact sentence.',
+        changes: [
+          {
+            originalText: 'I was responsible for the project.',
+            replacement: 'I led the project from planning through delivery.',
+            reason: 'Makes ownership clearer.',
+          },
+        ],
+      }),
+      metadata,
+    )
+
+    expect(result.changes).toHaveLength(1)
+    expect(result.changes[0]?.reason).toBe('Makes ownership clearer.')
   })
 
   it('rejects incomplete structured output', () => {

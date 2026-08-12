@@ -78,7 +78,7 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
       const passwordHash = await withArgon2Capacity(() =>
         Bun.password.hash(body.password, { algorithm: 'argon2id' }),
       )
-      const user = await User.create({ email, passwordHash })
+      const user = await User.create({ email, passwordHash, role: config.adminEmails.has(email) ? 'admin' : 'user' })
       try {
         await UserProfile.create({ userId: user._id, name })
       } catch (error) {
@@ -114,6 +114,11 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
         : false
       if (!user || !passwordMatches) {
         throw new AppError(401, 'INVALID_CREDENTIALS', 'Email or password is incorrect')
+      }
+
+      if (config.adminEmails.has(email) && user.role !== 'admin') {
+        user.role = 'admin'
+        await user.save()
       }
 
       const ttl = body.remember === false ? 60 * 60 * 24 : config.sessionTtlSeconds
@@ -209,7 +214,7 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
 
     let user = await User.findOne({ email })
     if (!user) {
-      user = await User.create({ email })
+      user = await User.create({ email, role: config.adminEmails.has(email) ? 'admin' : 'user' })
       try {
         const base = (profile.name || email.split('@')[0] || '').trim()
         await UserProfile.create({ userId: user._id, name: base.length >= 2 ? base.slice(0, 120) : 'Scholar' })
@@ -217,6 +222,11 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
         await User.deleteOne({ _id: user._id })
         throw error
       }
+    }
+
+    if (config.adminEmails.has(email) && user.role !== 'admin') {
+      user.role = 'admin'
+      await user.save()
     }
 
     const token = await createSessionToken({ userId: String(user._id), role: user.role })
