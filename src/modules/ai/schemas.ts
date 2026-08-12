@@ -152,6 +152,16 @@ export const interviewAnswerSchema: Record<string, unknown> = {
   },
 }
 
+export const interviewReplySchema: Record<string, unknown> = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reply', 'followUp'],
+  properties: {
+    reply: { type: 'string', minLength: 1, maxLength: 500 },
+    followUp: { type: 'string', maxLength: 700 },
+  },
+}
+
 export const ieltsWritingSchema: Record<string, unknown> = {
   type: 'object',
   additionalProperties: false,
@@ -208,5 +218,16 @@ export const ieltsSpeakingSchema: Record<string, unknown> = {
     estimatedBand: bandScore,
     strengths: { type: 'array', minItems: 1, maxItems: 6, items: shortString },
     improvements: { type: 'array', minItems: 1, maxItems: 6, items: shortString },
+  },
+}
+
+export const ieltsSpeakingTurnSchema: Record<string, unknown> = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reply', 'nextQuestion', 'shouldContinue'],
+  properties: {
+    reply: { type: 'string', minLength: 1, maxLength: 500 },
+    nextQuestion: { type: 'string', maxLength: 700 },
+    shouldContinue: { type: 'boolean' },
   },
 }

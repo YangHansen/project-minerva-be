@@ -31,10 +31,13 @@ export const app = new Elysia({ name: 'minerva-api' })
 
     if (code === 'VALIDATION') {
       set.status = 422
+      const detail = error instanceof Error ? error.message : String(error)
+      console.warn(`[${requestId}] VALIDATION_ERROR`, detail)
       return {
         error: {
           code: 'VALIDATION_ERROR',
-          message: 'The request did not match the expected format',
+          message: detail && detail !== 'VALIDATION' ? detail : 'The request did not match the expected format',
+          details: detail,
         },
         requestId,
       }

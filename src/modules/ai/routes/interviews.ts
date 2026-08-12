@@ -211,26 +211,35 @@ export const createInterviewRoutes = ({ getAi }: AiRouteDependencies) =>
       const deleted = await InterviewSession.findOneAndDelete({ _id: params.sessionId, userId })
       if (!deleted) throw new AppError(404, 'INTERVIEW_NOT_FOUND', 'Interview session not found')
       return { success: true }
-    })    .post(
+    })
+    .post(
       '/api/interviews/:sessionId/question-voice',
       async ({ request, params, body }) => {
         const { userId } = await requireAuth(request)
         const session = await InterviewSession.findOne({ _id: params.sessionId, userId }).lean()
         if (!session) throw new AppError(404, 'INTERVIEW_NOT_FOUND', 'Interview session not found')
-        if (session.language !== 'en') return { voice: null, reason: 'Kokoro voice is currently available for English interviews only.' }
         const questions = session.questions as unknown as QuestionLike[]
         const question = questions.find((item) => String(item._id) === body.questionId)
         if (!question) throw new AppError(404, 'QUESTION_NOT_FOUND', 'Interview question not found')
         const introduction = question.position === 0
-          ? 'Hello, I am Minerva, your AI interviewer. Take your time and answer this question.'
-          : 'Thank you. Here is the next question.'
+          ? (session.language === 'id'
+            ? 'Halo, saya Minerva, pewawancara AI Anda. Jawablah pertanyaan ini dengan tenang.'
+            : 'Hello, I am Minerva, your AI interviewer. Take your time and answer this question.')
+          : (session.language === 'id'
+            ? 'Terima kasih. Berikut pertanyaan berikutnya.'
+            : 'Thank you. Here is the next question.')
         try {
-          const voice = await getAi().synthesizeSpeech({ text: `${introduction} ${question.text}`, language: 'a', voice: 'af_heart', speed: 1 })
+          const voice = await getAi().synthesizeSpeech({
+            text: `${introduction} ${question.text}`,
+            language: 'a',
+            speed: 1,
+          })
           return { voice: { text: `${introduction} ${question.text}`, dataUrl: voice.dataUrl, contentType: voice.contentType } }
         } catch (error) {
           console.warn('Interview question voice unavailable', error)
           return { voice: null, reason: 'Minerva voice is temporarily unavailable. You can continue with the question on screen.' }
-        }      },
+        }
+      },
       { body: t.Object({ questionId: t.String({ minLength: 1, maxLength: 100 }) }) },
     )
     .post(
@@ -242,20 +251,39 @@ export const createInterviewRoutes = ({ getAi }: AiRouteDependencies) =>
         if (session.status !== 'active') {
           throw new AppError(409, 'INTERVIEW_COMPLETED', 'This interview has already been completed')
         }
-        validateAudio(body.audio)
 
+        const audioValue = body.audio as unknown
+        const audio = audioValue instanceof File
+          ? audioValue
+          : typeof Blob !== 'undefined' && audioValue instanceof Blob
+            ? new File([audioValue], 'interview-answer.webm', { type: audioValue.type || 'audio/webm' })
+            : null
+        if (!audio) throw new AppError(422, 'MISSING_AUDIO', 'Record an answer before sending it to the interviewer')
+        validateAudio(audio)
+
+        const questionId = String(body.questionId || '')
+        const durationSeconds = Math.min(1_800, Math.max(1, Number(body.durationSeconds) || 1))
         const questions = session.questions as unknown as QuestionLike[]
-        const question = questions.find((item) => String(item._id) === body.questionId)
+        const question = questions.find((item) => String(item._id) === questionId)
         if (!question) throw new AppError(404, 'QUESTION_NOT_FOUND', 'Interview question not found')
         const answers = session.answers as unknown as AnswerLike[]
-        if (answers.some((answer) => String(answer.questionId) === body.questionId)) {
+        if (answers.some((answer) => String(answer.questionId) === questionId)) {
           throw new AppError(409, 'ANSWER_ALREADY_SUBMITTED', 'An answer has already been submitted for this question')
         }
 
+        const previousTurns = answers.slice(-8).map((answer) => {
+          const matched = questions.find((item) => String(item._id) === String(answer.questionId))
+          return {
+            question: matched?.text || 'Previous question',
+            answer: answer.transcript?.text || '',
+            reply: answer.interviewerReply,
+          }
+        }).filter((turn) => turn.answer)
+
         const paidResult = await runPaidAiOperation(userId, async () => {
           const transcript = await getAi().transcribe({
-            audio: body.audio,
-            filename: body.audio.name || 'interview-answer.webm',
+            audio,
+            filename: audio.name || 'interview-answer.webm',
             language: session.language === 'en' ? 'english' : undefined,
             returnTimestamps: 'word',
           }).catch(async (error) => {
@@ -264,7 +292,7 @@ export const createInterviewRoutes = ({ getAi }: AiRouteDependencies) =>
               operation: 'transcription',
               model: process.env.ELICE_WHISPER_MODEL || 'whisper-large-v3',
               error,
-              audioSeconds: body.durationSeconds,
+              audioSeconds: durationSeconds,
             })
             throw error
           })
@@ -272,7 +300,7 @@ export const createInterviewRoutes = ({ getAi }: AiRouteDependencies) =>
             userId,
             operation: 'transcription',
             metadata: transcript.metadata,
-            audioSeconds: body.durationSeconds,
+            audioSeconds: durationSeconds,
           })
 
           const evaluation = await getAi().evaluateInterviewAnswer({
@@ -280,7 +308,7 @@ export const createInterviewRoutes = ({ getAi }: AiRouteDependencies) =>
             provider: session.provider,
             question: question.text,
             transcript: transcript.text,
-            durationSeconds: body.durationSeconds,
+            durationSeconds,
             language: session.language,
           }).catch(async (error) => {
             await recordFailedUsage({
@@ -288,7 +316,7 @@ export const createInterviewRoutes = ({ getAi }: AiRouteDependencies) =>
               operation: 'interview_answer',
               model: process.env.ELICE_TERRA_MODEL || 'gpt-5.6-terra',
               error,
-              audioSeconds: body.durationSeconds,
+              audioSeconds: durationSeconds,
             })
             throw error
           })
@@ -296,7 +324,7 @@ export const createInterviewRoutes = ({ getAi }: AiRouteDependencies) =>
             userId,
             operation: 'interview_answer',
             metadata: evaluation.metadata,
-            audioSeconds: body.durationSeconds,
+            audioSeconds: durationSeconds,
           })
           const reply = await getAi().replyToInterviewAnswer({
             scholarshipName: session.scholarshipName,
@@ -304,6 +332,7 @@ export const createInterviewRoutes = ({ getAi }: AiRouteDependencies) =>
             transcript: transcript.text,
             language: session.language,
             allowFollowUp: question.focus !== 'follow-up',
+            previousTurns,
           })
           return { transcript, evaluation, reply }
         }).catch((error) => throwRouteError(error))
@@ -317,7 +346,7 @@ export const createInterviewRoutes = ({ getAi }: AiRouteDependencies) =>
 
         session.answers.push({
           questionId: question._id,
-          durationSeconds: body.durationSeconds,
+          durationSeconds,
           transcript: {
             text: transcript.text,
             chunks: transcript.chunks,
@@ -331,14 +360,16 @@ export const createInterviewRoutes = ({ getAi }: AiRouteDependencies) =>
         })
         await session.save()
         let voice: { text: string; dataUrl: string; contentType: string } | undefined
-        if (session.language === 'en') {
-          try {
-            const spokenReply = reply.followUp ? `${reply.text} ${reply.followUp}` : reply.text
-            const speech = await getAi().synthesizeSpeech({ text: spokenReply, language: 'a', voice: 'af_heart', speed: 1 })
-            voice = { text: spokenReply, dataUrl: speech.dataUrl, contentType: speech.contentType }
-          } catch {
-            // Transcript, analysis, and the text reply remain available if voice synthesis is temporarily unavailable.
-          }
+        try {
+          const spokenReply = reply.followUp ? `${reply.text} ${reply.followUp}` : reply.text
+          const speech = await getAi().synthesizeSpeech({
+            text: spokenReply,
+            language: 'a',
+            speed: 1,
+          })
+          voice = { text: spokenReply, dataUrl: speech.dataUrl, contentType: speech.contentType }
+        } catch {
+          // Transcript, analysis, and the text reply remain available if voice synthesis is temporarily unavailable.
         }
         set.status = 201
         return {
@@ -349,15 +380,16 @@ export const createInterviewRoutes = ({ getAi }: AiRouteDependencies) =>
           },
           evaluation: withoutMetadata(evaluation),
           reply: { text: reply.text },
+          followUp,
           voice,
           tokenBalance: paidResult.tokenBalance,
         }
       },
       {
         body: t.Object({
-          questionId: t.String({ minLength: 1, maxLength: 100 }),
-          audio: t.File(),
-          durationSeconds: t.Numeric({ minimum: 1, maximum: 1_800 }),
+          questionId: t.Union([t.String(), t.Number()]),
+          audio: t.Any(),
+          durationSeconds: t.Union([t.String(), t.Number()]),
         }),
       },
     )

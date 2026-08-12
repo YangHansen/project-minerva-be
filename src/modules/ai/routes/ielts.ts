@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { requireAuth } from '../../../auth/session'
+import { AppError } from '../../../lib/errors'
 import { IeltsAiEvaluation, toStoredMetadata } from '../models'
 import { runPaidAiOperation } from '../paid-operation'
 import { recordCompletedUsage, recordFailedUsage } from '../usage'
@@ -8,6 +9,14 @@ import { throwRouteError, validateAudio, type AiRouteDependencies } from './shar
 const withoutMetadata = <T extends { metadata: unknown }>(value: T): Omit<T, 'metadata'> => {
   const { metadata: _metadata, ...result } = value
   return result
+}
+
+const asUploadFile = (value: unknown, fallbackName: string): File => {
+  if (value instanceof File) return value
+  if (typeof Blob !== 'undefined' && value instanceof Blob) {
+    return new File([value], fallbackName, { type: value.type || 'audio/webm' })
+  }
+  throw new AppError(422, 'MISSING_AUDIO', 'Record an answer before sending it to the examiner')
 }
 
 type EvaluationListItem = {
@@ -48,30 +57,167 @@ export const createIeltsAiRoutes = ({ getAi }: AiRouteDependencies) =>
       '/api/ielts/speaking/turn',
       async ({ request, body, set }) => {
         const { userId } = await requireAuth(request)
-        validateAudio(body.audio)
+        const audio = asUploadFile(body.audio, 'ielts-speaking-turn.webm')
+        validateAudio(audio)
+
+        const part = Math.min(3, Math.max(1, Number(body.part)))
+        const durationSeconds = Math.min(1_800, Math.max(1, Number(body.durationSeconds) || 1))
+        const prompt = String(body.prompt || '').trim()
+        const partBrief = String(body.partBrief || '').trim() || undefined
+        if (!prompt) throw new AppError(422, 'EMPTY_PROMPT', 'A speaking question is required')
+        if (!Number.isFinite(part) || part < 1 || part > 3) {
+          throw new AppError(422, 'INVALID_PART', 'Speaking part must be 1, 2, or 3')
+        }
+
+        let previousTurns: Array<{ examiner: string; candidate: string }> = []
+        const historyValue = body.history as unknown
+        if (Array.isArray(historyValue)) {
+          previousTurns = historyValue
+            .map((entry) => {
+              if (!entry || typeof entry !== 'object') return null
+              const row = entry as Record<string, unknown>
+              const examiner = row.examiner == null ? '' : String(row.examiner).trim()
+              const candidate = row.candidate == null ? '' : String(row.candidate).trim()
+              if (!examiner || !candidate) return null
+              return { examiner, candidate }
+            })
+            .filter((entry): entry is { examiner: string; candidate: string } => Boolean(entry))
+            .slice(-24)
+        } else if (typeof historyValue === 'string' && historyValue.trim()) {
+          try {
+            const parsed = JSON.parse(historyValue)
+            previousTurns = Array.isArray(parsed)
+              ? parsed
+                .map((entry) => {
+                  if (!entry || typeof entry !== 'object') return null
+                  const row = entry as Record<string, unknown>
+                  const examiner = row.examiner == null ? '' : String(row.examiner).trim()
+                  const candidate = row.candidate == null ? '' : String(row.candidate).trim()
+                  if (!examiner || !candidate) return null
+                  return { examiner, candidate }
+                })
+                .filter((entry): entry is { examiner: string; candidate: string } => Boolean(entry))
+                .slice(-24)
+              : []
+          } catch {
+            previousTurns = []
+          }
+        }
+
         const paidResult = await runPaidAiOperation(userId, async () => {
-          const transcript = await getAi().transcribe({ audio: body.audio, filename: body.audio.name || 'ielts-speaking-turn.webm', language: 'english', returnTimestamps: 'word' })
-          const previousTurns = body.history ? JSON.parse(body.history) : []
-          const reply = await getAi().replyToIeltsSpeaking({ part: body.part, prompt: body.prompt, transcript: transcript.text, previousTurns: Array.isArray(previousTurns) ? previousTurns.slice(-24) : [] })
+          const transcript = await getAi().transcribe({
+            audio,
+            filename: audio.name || 'ielts-speaking-turn.webm',
+            language: 'english',
+            returnTimestamps: 'word',
+          })
+          const reply = await getAi().replyToIeltsSpeaking({
+            part,
+            prompt,
+            partBrief,
+            transcript: transcript.text,
+            previousTurns,
+          })
           return { transcript, reply }
         }).catch(async (error) => {
-          await recordFailedUsage({ userId, operation: 'ielts_speaking', model: process.env.ELICE_TERRA_MODEL || 'gpt-5.6-terra', error, audioSeconds: body.durationSeconds })
+          await recordFailedUsage({
+            userId,
+            operation: 'ielts_speaking',
+            model: process.env.ELICE_TERRA_MODEL || 'gpt-5.6-terra',
+            error,
+            audioSeconds: durationSeconds,
+          })
           return throwRouteError(error)
         })
         const { transcript, reply } = paidResult.value
-        await recordCompletedUsage({ userId, operation: 'ielts_speaking', metadata: reply.metadata, audioSeconds: body.durationSeconds })
-        const record = await IeltsAiEvaluation.create({ userId, kind: 'speaking', prompt: body.prompt, transcript: transcript.text, durationSeconds: body.durationSeconds, result: { conversational: true, part: body.part, reply: reply.text, nextQuestion: reply.nextQuestion, shouldContinue: reply.shouldContinue }, metadata: toStoredMetadata(reply.metadata), transcriptionMetadata: toStoredMetadata(transcript.metadata) })
-let voice: { dataUrl: string; contentType: string } | undefined
+        await recordCompletedUsage({
+          userId,
+          operation: 'ielts_speaking',
+          metadata: reply.metadata,
+          audioSeconds: durationSeconds,
+        })
+        const record = await IeltsAiEvaluation.create({
+          userId,
+          kind: 'speaking',
+          prompt,
+          transcript: transcript.text,
+          durationSeconds,
+          result: {
+            conversational: true,
+            part,
+            reply: reply.text,
+            nextQuestion: reply.nextQuestion,
+            shouldContinue: reply.shouldContinue,
+          },
+          metadata: toStoredMetadata(reply.metadata),
+          transcriptionMetadata: toStoredMetadata(transcript.metadata),
+        })
+        let voice: { dataUrl: string; contentType: string } | undefined
         try {
           const spokenText = reply.nextQuestion ? `${reply.text} ${reply.nextQuestion}` : reply.text
-          const speech = await getAi().synthesizeSpeech({ text: spokenText, language: 'a', voice: 'en-US-Wavenet-F', speed: 1 })
+          const speech = await getAi().synthesizeSpeech({ text: spokenText, language: 'a', speed: 1 })
           voice = { dataUrl: speech.dataUrl, contentType: speech.contentType }
-        } catch { /* Text reply remains available when Google TTS is unavailable. */ }
+        } catch { /* Text reply remains available when TTS is unavailable. */ }
         set.status = 201
-        return { turnId: String(record._id), transcript: { text: transcript.text, chunks: transcript.chunks, language: transcript.language }, examiner: { text: reply.text, nextQuestion: reply.nextQuestion, shouldContinue: reply.shouldContinue }, tokenBalance: paidResult.tokenBalance, voice }
+        return {
+          turnId: String(record._id),
+          transcript: {
+            text: transcript.text,
+            chunks: transcript.chunks,
+            language: transcript.language,
+          },
+          examiner: {
+            text: reply.text,
+            nextQuestion: reply.nextQuestion,
+            shouldContinue: reply.shouldContinue,
+          },
+          tokenBalance: paidResult.tokenBalance,
+          voice,
+        }
       },
-      { body: t.Object({ audio: t.File(), prompt: t.String({ minLength: 1, maxLength: 8_000 }), part: t.Integer({ minimum: 1, maximum: 3 }), durationSeconds: t.Numeric({ minimum: 1, maximum: 1_800 }), history: t.Optional(t.String({ maxLength: 100_000 })) }) },
-    )    .post(
+      {
+        body: t.Object({
+          // Multipart parsers may keep fields as strings or JSON-decode them.
+          audio: t.Any(),
+          prompt: t.String({ minLength: 1, maxLength: 8_000 }),
+          part: t.Union([t.String(), t.Number()]),
+          durationSeconds: t.Union([t.String(), t.Number()]),
+          history: t.Optional(t.Union([
+            t.String(),
+            t.Null(),
+            t.Array(t.Object({
+              examiner: t.String(),
+              candidate: t.String(),
+            })),
+            t.Array(t.Any()),
+          ])),
+          partBrief: t.Optional(t.Union([t.String(), t.Null()])),
+        }),
+      },
+    )
+    .post(
+      '/api/ielts/speaking/question-voice',
+      async ({ request, body }) => {
+        await requireAuth(request)
+        try {
+          const introduction = body.introduction?.trim() || 'Hello. I am your IELTS speaking examiner. Here is your question.'
+          const spoken = `${introduction} ${body.text.trim()}`.slice(0, 1_200)
+          const speech = await getAi().synthesizeSpeech({ text: spoken, language: 'a', speed: 1 })
+          return { voice: { text: spoken, dataUrl: speech.dataUrl, contentType: speech.contentType } }
+        } catch (error) {
+          console.warn('IELTS speaking question voice unavailable', error)
+          return { voice: null, reason: 'Examiner voice is temporarily unavailable. You can continue with the question on screen.' }
+        }
+      },
+      {
+        body: t.Object({
+          text: t.String({ minLength: 1, maxLength: 2_000 }),
+          introduction: t.Optional(t.String({ maxLength: 300 })),
+          part: t.Optional(t.Numeric({ minimum: 1, maximum: 3 })),
+        }),
+      },
+    )
+    .post(
       '/api/ielts/writing/evaluate',
       async ({ request, body, set }) => {
         const { userId } = await requireAuth(request)

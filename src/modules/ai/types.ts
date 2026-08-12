@@ -250,11 +250,13 @@ export interface MinervaAI {
     transcript: string
     language: 'en' | 'id'
     allowFollowUp: boolean
+    previousTurns?: Array<{ question: string; answer: string; reply?: string }>
   }): Promise<{ text: string; followUp?: string; metadata: ProviderMetadata }>
 
   replyToIeltsSpeaking(input: {
     part: number
     prompt: string
+    partBrief?: string
     transcript: string
     previousTurns: Array<{ examiner: string; candidate: string }>
   }): Promise<{ text: string; nextQuestion?: string; shouldContinue: boolean; metadata: ProviderMetadata }>
