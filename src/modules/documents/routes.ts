@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+import mammoth from 'mammoth'
 import { mkdir, unlink } from 'node:fs/promises'
 import { dirname, extname, resolve, sep } from 'node:path'
 import { Types } from 'mongoose'
@@ -18,14 +19,8 @@ const documentKind = t.Union([
   t.Literal('passport'), t.Literal('certificate'), t.Literal('custom'),
 ])
 const documentStatus = t.Union([t.Literal('missing'), t.Literal('draft'), t.Literal('ready')])
-const allowedUploadTypes = new Set([
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'text/plain',
-  'image/jpeg',
-  'image/png',
-])
+const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+const allowedUploadTypes = new Set([DOCX_MIME_TYPE])
 
 function storedUploadPath(storageKey: string) {
   const root = resolve(config.uploadDirectory)
@@ -42,8 +37,9 @@ async function persistUpload(file: File, userId: string) {
     throw new AppError(413, 'DOCUMENT_UPLOAD_TOO_LARGE', `The document must be smaller than ${config.uploadMaxBytes} bytes`)
   }
   const mimeType = file.type.toLowerCase().split(';', 1)[0].trim()
-  if (!allowedUploadTypes.has(mimeType)) {
-    throw new AppError(415, 'UNSUPPORTED_DOCUMENT_TYPE', 'Upload a PDF, DOC, DOCX, TXT, PNG, or JPG document')
+  const isDocx = mimeType === DOCX_MIME_TYPE && file.name.toLowerCase().endsWith('.docx')
+  if (!allowedUploadTypes.has(mimeType) || !isDocx) {
+    throw new AppError(415, 'UNSUPPORTED_DOCUMENT_TYPE', 'Upload a DOCX document (.docx)')
   }
   const suffix = extname(file.name).toLowerCase().replace(/[^.a-z0-9]/g, '').slice(0, 12)
   const storageKey = `${userId}/${crypto.randomUUID()}${suffix}`
@@ -53,6 +49,21 @@ async function persistUpload(file: File, userId: string) {
   return { originalName: file.name.slice(0, 255), storageKey, mimeType, size: file.size }
 }
 
+async function extractDocxContent(file: File) {
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const result = await mammoth.convertToHtml({ buffer })
+    const contentHtml = sanitizeEditorHtml(result.value)
+    const contentText = stripHtml(contentHtml)
+    if (!contentText.trim()) {
+      throw new AppError(422, 'DOCX_HAS_NO_EDITABLE_TEXT', 'This DOCX does not contain editable text')
+    }
+    return { contentHtml, contentText }
+  } catch (error) {
+    if (error instanceof AppError) throw error
+    throw new AppError(422, 'DOCX_READ_FAILED', 'Minerva could not read this DOCX file. Try saving it again as a standard Word document.')
+  }
+}
 async function removeStoredUpload(upload: { storageKey?: string } | null | undefined) {
   if (!upload?.storageKey) return
   try { await unlink(storedUploadPath(upload.storageKey)) } catch (error) {
@@ -200,25 +211,35 @@ export const documentRoutes = new Elysia({ name: 'document-routes' })
       const { userId } = await requireAuth(request)
       const application = await findOwnedApplication(params.id, userId)
       const upload = await persistUpload(body.file, userId)
-      const title = body.title?.trim() || upload.originalName.replace(/\.[^.]+$/, '') || 'Uploaded document'
-      const order = await Document.countDocuments({ userId, applicationId: application._id })
-      const document = await Document.create({
-        userId,
-        applicationId: application._id,
-        kind: body.kind ?? 'custom',
-        title: title.slice(0, 240),
-        description: body.description?.trim() ?? '',
-        category: body.category?.trim() || 'Other',
-        upload,
-        status: 'ready',
-        order,
-      })
-      set.status = 201
-      return { document: documentJson(document.toObject() as Record<string, any>) }
+      try {
+        const content = await extractDocxContent(body.file)
+        const title = body.title?.trim() || upload.originalName.replace(/\.[^.]+$/, '') || 'Uploaded document'
+        const order = await Document.countDocuments({ userId, applicationId: application._id })
+        const document = await Document.create({
+          userId,
+          applicationId: application._id,
+          kind: body.kind ?? 'custom',
+          title: title.slice(0, 240),
+          description: body.description?.trim() ?? '',
+          category: body.category?.trim() || 'Other',
+          contentHtml: content.contentHtml,
+          contentText: content.contentText,
+          pages: [{ id: 'page-1', title: 'Page 1', contentHtml: content.contentHtml, contentText: content.contentText }],
+          upload,
+          status: 'draft',
+          order,
+        })
+        set.status = 201
+        return { document: documentJson(document.toObject() as Record<string, any>) }
+      } catch (error) {
+        await removeStoredUpload(upload)
+        throw error
+      }
     },
     {
       body: t.Object({
         file: t.File(),
+
         kind: t.Optional(documentKind),
         title: t.Optional(t.String({ maxLength: 240 })),
         description: t.Optional(t.String({ maxLength: 2_000 })),
