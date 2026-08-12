@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import { requireAuth } from '../../../auth/session'
 import { AppError } from '../../../lib/errors'
 import { Scholarship } from '../../../models/Scholarship'
+import { baselineMatchScore } from '../../scholarships/routes'
 import { UserProfile } from '../../../models/UserProfile'
 import { AiRecommendationDaily } from '../models'
 import { runPaidAiOperation } from '../paid-operation'
@@ -103,7 +104,7 @@ export const createRecommendationRoutes = ({ getAi }: AiRouteDependencies) =>
         fundingType: scholarship.fundingType,
         deadline: scholarship.deadline.toISOString(),
         eligibility: plain(scholarship.eligibilitySummary || scholarship.eligibilityRequirements).slice(0, 600),
-        baselineMatch: Number(scholarship.baselineMatchPercentage || 0),
+        baselineMatch: baselineMatchScore(scholarship.baselineMatchPercentage),
       }))
       if (candidates.length < 3) throw new AppError(409, 'RECOMMENDATION_CATALOG_TOO_SMALL', 'At least three scholarships must exist in the Minerva catalog.')
 

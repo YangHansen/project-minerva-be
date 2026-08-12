@@ -10,10 +10,18 @@ function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+function baselineMatchScore(value: unknown) {
+  const values = (Array.isArray(value) ? value : [value])
+    .map(Number)
+    .filter((score) => Number.isFinite(score))
+  if (!values.length) return 50
+  const average = values.reduce((total, score) => total + score, 0) / values.length
+  return Math.max(0, Math.min(99, Math.round(average)))
+}
 function calculateMatch(scholarship: Record<string, any>, profile?: Record<string, any> | null) {
   if (!profile) {
     return {
-      score: scholarship.baselineMatchPercentage ?? 50,
+      score: baselineMatchScore(scholarship.baselineMatchPercentage),
       reasons: ['Complete your profile for a personalized match'],
       gaps: [],
     }
@@ -88,7 +96,7 @@ function scholarshipJson(scholarship: Record<string, any>, match?: ReturnType<ty
     applicationUrl: scholarship.applicationUrl,
     requiredDocuments: scholarship.requiredDocuments,
     featured: scholarship.featured,
-    matchPercentage: match?.score ?? scholarship.baselineMatchPercentage,
+    matchPercentage: match?.score ?? baselineMatchScore(scholarship.baselineMatchPercentage),
     matchReasons: match?.reasons ?? [],
     matchGaps: match?.gaps ?? [],
     coreValues: scholarship.coreValues,
@@ -170,4 +178,4 @@ export const scholarshipRoutes = new Elysia({ name: 'scholarship-routes' })
     return { scholarship: scholarshipJson(scholarship, calculateMatch(scholarship, profile as Record<string, any> | null)) }
   })
 
-export { calculateMatch, scholarshipJson }
+export { baselineMatchScore, calculateMatch, scholarshipJson }
