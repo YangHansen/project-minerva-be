@@ -79,7 +79,7 @@ function calculateMatch(scholarship: Record<string, any>, profile?: Record<strin
 
 function scholarshipJson(scholarship: Record<string, any>, match?: ReturnType<typeof calculateMatch>) {
   return {
-    id: scholarship.slug,
+    id: String(scholarship._id),
     databaseId: String(scholarship._id),
     name: scholarship.name,
     provider: scholarship.provider,
