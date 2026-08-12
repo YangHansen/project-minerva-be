@@ -193,12 +193,61 @@ export const documentRoutes = new Elysia({ name: 'document-routes' })
       }),
     },
   )
+  .post(
+    '/api/applications/:id/documents/upload',
+    async ({ request, params, body, set }) => {
+      requireDatabase()
+      const { userId } = await requireAuth(request)
+      const application = await findOwnedApplication(params.id, userId)
+      const upload = await persistUpload(body.file, userId)
+      const title = body.title?.trim() || upload.originalName.replace(/\.[^.]+$/, '') || 'Uploaded document'
+      const order = await Document.countDocuments({ userId, applicationId: application._id })
+      const document = await Document.create({
+        userId,
+        applicationId: application._id,
+        kind: body.kind ?? 'custom',
+        title: title.slice(0, 240),
+        description: body.description?.trim() ?? '',
+        category: body.category?.trim() || 'Other',
+        upload,
+        status: 'ready',
+        order,
+      })
+      set.status = 201
+      return { document: documentJson(document.toObject() as Record<string, any>) }
+    },
+    {
+      body: t.Object({
+        file: t.File(),
+        kind: t.Optional(documentKind),
+        title: t.Optional(t.String({ maxLength: 240 })),
+        description: t.Optional(t.String({ maxLength: 2_000 })),
+        category: t.Optional(t.String({ maxLength: 120 })),
+      }),
+    },
+  )
   .get('/api/documents/:id', async ({ request, params }) => {
     requireDatabase()
     const { userId } = await requireAuth(request)
     const document = await findOwnedDocument(params.id, userId)
     const versions = await loadVersions(document._id, userId)
     return { document: documentJson(document.toObject() as Record<string, any>, versions as Record<string, any>[]) }
+  })
+  .get('/api/documents/:id/file', async ({ request, params }) => {
+    requireDatabase()
+    const { userId } = await requireAuth(request)
+    const document = await findOwnedDocument(params.id, userId)
+    if (!document.upload) throw new AppError(404, 'DOCUMENT_FILE_NOT_FOUND', 'This document does not have an uploaded file')
+    const file = Bun.file(storedUploadPath(document.upload.storageKey))
+    if (!(await file.exists())) throw new AppError(404, 'DOCUMENT_FILE_NOT_FOUND', 'The uploaded file is no longer available')
+    const filename = document.upload.originalName.replace(/[\r\n"]/g, '_')
+    return new Response(file, {
+      headers: {
+        'Content-Type': document.upload.mimeType,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'private, no-store',
+      },
+    })
   })
   .patch(
     '/api/documents/:id',
@@ -248,6 +297,7 @@ export const documentRoutes = new Elysia({ name: 'document-routes' })
     await DocumentAiReview.deleteMany({ userId, documentId: document._id })
     await DocumentVersion.deleteMany({ userId, documentId: document._id })
     await document.deleteOne()
+    await removeStoredUpload(document.upload)
     return { success: true as const }
   })
   .get('/api/documents/:id/versions', async ({ request, params }) => {
