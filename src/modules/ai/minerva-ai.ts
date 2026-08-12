@@ -118,26 +118,36 @@ export class MinervaAiModule implements MinervaAI {
     request: TerraCompletionRequest,
     parser: (content: string, metadata: ProviderMetadata) => T,
   ): Promise<T> {
-    const first = await this.terra.complete(request)
-    try {
-      return parser(first.content, first.metadata)
-    } catch (error) {
-      if (!(error instanceof AiError) || error.code !== 'AI_INVALID_RESPONSE') throw error
+    // this part is modified to ensure [LLM integration stability by hardcoding maximum agentic iterations for self-correction loops to prevent infinite recursions]
+    const maxIterations = 3
+    let currentIteration = 1
+    let lastMetadata: ProviderMetadata | null = null
+    let currentRequest = { ...request }
 
-      const repaired = await this.terra.complete({
-        ...request,
-        messages: [
-          ...request.messages,
-          {
-            role: 'system',
-            content:
-              'Your previous response failed validation. Return one complete JSON object that exactly follows the supplied JSON schema. Do not include markdown fences or commentary.',
-          },
-        ],
-      })
-      const parsed = parser(repaired.content, repaired.metadata)
-      return { ...parsed, metadata: mergeMetadata(first.metadata, repaired.metadata) }
+    while (currentIteration <= maxIterations) {
+      const response = await this.terra.complete(currentRequest)
+      lastMetadata = lastMetadata ? mergeMetadata(lastMetadata, response.metadata) : response.metadata
+      try {
+        const parsed = parser(response.content, lastMetadata)
+        return { ...parsed, metadata: lastMetadata }
+      } catch (error) {
+        if (!(error instanceof AiError) || error.code !== 'AI_INVALID_RESPONSE' || currentIteration >= maxIterations) {
+          throw error
+        }
+        currentRequest = {
+          ...currentRequest,
+          messages: [
+            ...currentRequest.messages,
+            {
+              role: 'system',
+              content: 'Your previous response failed validation. Return one complete JSON object that exactly follows the supplied JSON schema. Do not include markdown fences or commentary.',
+            },
+          ],
+        }
+        currentIteration++
+      }
     }
+    throw new AiError({ message: 'Max iterations reached', code: 'AI_INVALID_RESPONSE', status: 502 })
   }
 
   async chat(input: {

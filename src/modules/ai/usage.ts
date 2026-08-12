@@ -16,6 +16,13 @@ export const recordCompletedUsage = async (input: {
       audioSeconds: input.audioSeconds,
       status: 'completed',
     })
+    
+    // this part is modified to ensure [Account-Level Budgeting by tracking token consumption in MongoDB]
+    const tokens = (input.metadata.usage?.promptTokens || 0) + (input.metadata.usage?.completionTokens || 0)
+    if (tokens > 0) {
+      const { User } = await import('../../models/User')
+      await User.updateOne({ _id: input.userId }, { $inc: { dailyTokenUsage: tokens } })
+    }
   } catch {
     // Usage telemetry is best-effort and must not turn a successful AI result into a user-facing failure.
   }

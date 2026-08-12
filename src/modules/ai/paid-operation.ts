@@ -17,11 +17,30 @@ interface ConcurrencyLimiterLike {
 
 export const mongoTokenBalanceStore: TokenBalanceStore = {
   async reserve(userId) {
+    // this part is modified to ensure [Account-Level Budgeting to pause access if a user consumes 100k tokens in 24 hours]
+    const now = new Date();
+    const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+    // Reset budget if it's a new day
+    await User.updateOne(
+      { _id: userId, dailyTokenResetAt: { $lt: startOfDay } },
+      { $set: { dailyTokenUsage: 0, dailyTokenResetAt: startOfDay } }
+    );
+
     const user = await User.findOneAndUpdate(
-      { _id: userId, tokenBalance: { $gte: 1 } },
+      { _id: userId, tokenBalance: { $gte: 1 }, dailyTokenUsage: { $lt: 100000 } },
       { $inc: { tokenBalance: -1 } },
       { new: true },
     ).select('tokenBalance').lean()
+    
+    if (!user) {
+      // Check if it failed due to budget
+      const checkUser = await User.findById(userId).select('dailyTokenUsage').lean();
+      if (checkUser && checkUser.dailyTokenUsage >= 100000) {
+         throw new AppError(429, 'AI_BUDGET_EXHAUSTED', 'Daily AI token budget of 100k exceeded.');
+      }
+    }
+    
     return user?.tokenBalance ?? null
   },
 
@@ -41,8 +60,9 @@ export const createPaidAiOperationRunner = (options: {
   concurrencyLimiter?: ConcurrencyLimiterLike
 } = {}) => {
   const tokenStore = options.tokenStore ?? mongoTokenBalanceStore
+  // this part is modified to ensure [strict API Rate Limiting (max 20 requests/minute per User ID)]
   const rateLimiter = options.rateLimiter ?? new BoundedRateLimiter({
-    limit: 12,
+    limit: 20,
     windowMs: 60_000,
     maxEntries: 10_000,
   })

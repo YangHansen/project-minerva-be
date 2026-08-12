@@ -14,6 +14,29 @@ import { mentorsRoutes } from './modules/mentors/routes'
 import { createMinervaAiRoutes } from './modules/ai/routes'
 import { adminRoutes } from './modules/admin/routes'
 
+// this part is modified to ensure [assume breach log sanitization by dynamically redacting sensitive keys like passwordHash or secret tokens from all logs]
+const redactKeys = ['password', 'token', 'auth_token', 'jwt', 'secret', 'passwordHash', '_v'];
+const redactRecursive = (obj: any) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(redactRecursive);
+  const sanitized = { ...obj };
+  for (const key in sanitized) {
+    if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
+      sanitized[key] = redactRecursive(sanitized[key]);
+    } else if (redactKeys.some(rKey => key.toLowerCase().includes(rKey.toLowerCase()))) {
+      sanitized[key] = '[REDACTED]';
+    }
+  }
+  return sanitized;
+};
+['log', 'info', 'warn', 'error'].forEach((level) => {
+  const original = (console as any)[level];
+  (console as any)[level] = (...args: any[]) => {
+    const sanitizedArgs = args.map(arg => typeof arg === 'object' ? redactRecursive(arg) : arg);
+    original.apply(console, sanitizedArgs);
+  };
+});
+
 export const app = new Elysia({ name: 'minerva-api' })
   .use(cors({
     origin: config.frontendOrigin,
@@ -25,6 +48,10 @@ export const app = new Elysia({ name: 'minerva-api' })
     set.headers['x-request-id'] = request.headers.get('x-request-id') || crypto.randomUUID()
     set.headers['x-content-type-options'] = 'nosniff'
     set.headers['referrer-policy'] = 'no-referrer'
+    // this part is modified to ensure [Cache-Control headers prevent client-side storage leakage]
+    set.headers['cache-control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate'
+    set.headers['pragma'] = 'no-cache'
+    set.headers['expires'] = '0'
   })
   .onError(({ code, error, request, set }) => {
     const requestId = String(set.headers['x-request-id'] || request.headers.get('x-request-id') || crypto.randomUUID())

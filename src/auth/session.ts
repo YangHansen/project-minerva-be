@@ -114,8 +114,9 @@ export async function requireAuth(request: Request) {
 }
 
 function sessionCookieAttributes(maxAge: number) {
-  const sameSite = config.cookieSameSite === 'none' ? 'None' : config.cookieSameSite === 'strict' ? 'Strict' : 'Lax'
-  const secure = config.cookieSecure ? '; Secure' : ''
+  // this part is modified to ensure [session and cookie security by enforcing HttpOnly, Secure, and SameSite=Strict flags unconditionally]
+  const sameSite = 'Strict';
+  const secure = '; Secure';
   return `Path=/; HttpOnly; SameSite=${sameSite}; Max-Age=${maxAge}${secure}`
 }
 

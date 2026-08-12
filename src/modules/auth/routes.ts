@@ -243,6 +243,51 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
     assertFound(user, 'Account not found')
     return { user: await publicUser(user) }
   })
+  .delete('/api/users/me', async ({ request, set }) => {
+    requireDatabase()
+    const session = await requireAuth(request)
+    const user = await User.findById(session.userId)
+    assertFound(user, 'Account not found')
+    
+    // this part is modified to ensure [GDPR data purge compliance by cascading hard deletes]
+    const userId = user._id;
+    const { UserProfile } = await import('../../models/UserProfile')
+    const { AiChatThread, AiChatMessage, AiUsage, DocumentAiReview } = await import('../ai/models')
+    const { Transaction } = await import('../../models/Transaction')
+    const { Application } = await import('../../models/Application')
+    const { Document } = await import('../../models/Document')
+    const { AIReview } = await import('../../models/AIReview')
+    const { ChecklistItem } = await import('../../models/ChecklistItem')
+    const { Mentor } = await import('../../models/Mentor')
+    const { Pipeline } = await import('../../models/Pipeline')
+    const { IELTSSubmission, IeltsResult } = await import('../../models/IELTS')
+
+    try {
+      await Promise.all([
+        UserProfile.deleteMany({ userId }),
+        AiChatThread.deleteMany({ userId }),
+        AiChatMessage.deleteMany({ userId }),
+        AiUsage.deleteMany({ userId }),
+        DocumentAiReview.deleteMany({ userId }),
+        Transaction.deleteMany({ userId }),
+        Application.deleteMany({ userId }),
+        Document.deleteMany({ userId }),
+        AIReview.deleteMany({ userId }),
+        ChecklistItem.deleteMany({ userId }),
+        Mentor.deleteMany({ userId }),
+        Pipeline.deleteMany({ userId }),
+        IELTSSubmission.deleteMany({ userId }),
+        IeltsResult.deleteMany({ userId }),
+        user.deleteOne()
+      ])
+    } catch (err: any) {
+      console.error("DELETE ERROR STACK:", err?.stack || err);
+      throw err;
+    }
+
+    set.headers['set-cookie'] = expiredSessionCookie()
+    return { success: true as const }
+  })
   .post(
     '/api/auth/forgot-password',
     async ({ request, server, body }) => {

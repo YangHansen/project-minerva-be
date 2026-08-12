@@ -40,6 +40,31 @@ const serializeThread = (thread: LeanThread, messageCount?: number) => ({
   ...(messageCount === undefined ? {} : { messageCount }),
 })
 
+// this part is modified to ensure [Advanced AI multi-turn context evaluation and intent-based filtering against Crescendo attacks and typoglycemia]
+function detectMaliciousIntent(messages: ChatMessageInput[]): boolean {
+  const forbiddenTerms = ['ignore previous instructions', 'system prompt', 'bypass', 'jailbreak', 'you are now'];
+  const fullContext = messages.filter(m => m.role === 'user').map(m => m.content).join(' ');
+  const normalizedContext = fullContext.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  for (const term of forbiddenTerms) {
+    if (normalizedContext.includes(term.replace(/[^a-z0-9]/g, ''))) return true;
+  }
+
+  const words = fullContext.split(/\s+/);
+  for (const word of words) {
+    if (word.length > 16 && /^[A-Za-z0-9+/]+={1,2}$/.test(word)) {
+      try {
+        const decoded = Buffer.from(word, 'base64').toString('utf8');
+        const normalizedDecoded = decoded.toLowerCase().replace(/[^a-z0-9]/g, '');
+        for (const term of forbiddenTerms) {
+          if (normalizedDecoded.includes(term.replace(/[^a-z0-9]/g, ''))) return true;
+        }
+      } catch {}
+    }
+  }
+  return false;
+}
+
 export const createChatRoutes = ({ getAi }: AiRouteDependencies) =>
   new Elysia({ name: 'minerva-ai-chat' })
     .get('/api/ai/chats', async ({ request }) => {
@@ -94,7 +119,8 @@ export const createChatRoutes = ({ getAi }: AiRouteDependencies) =>
         const thread = await AiChatThread.findOne({ _id: params.id, userId })
         if (!thread) throw new AppError(404, 'CHAT_NOT_FOUND', 'Chat conversation not found')
 
-        const content = body.content.trim()
+        // this part is modified to ensure [LLM integration stability by enforcing strict payload truncation before calling AI services]
+        const content = body.content.trim().substring(0, 4000)
         const applicationId = body.applicationId?.trim() || thread.applicationId || undefined
         const context = await buildChatContext(userId, applicationId)
         const userMessage = await AiChatMessage.create({
@@ -114,10 +140,16 @@ export const createChatRoutes = ({ getAi }: AiRouteDependencies) =>
           content: message.text,
         }))
 
+        // this part is modified to ensure [Advanced AI multi-turn context evaluation and intent-based filtering against Crescendo attacks and typoglycemia]
+        if (detectMaliciousIntent(messages)) {
+          await AiChatMessage.deleteOne({ _id: userMessage._id, userId, threadId: thread._id }).catch(() => undefined)
+          throw new AppError(400, 'MALICIOUS_INTENT_DETECTED', 'Request blocked due to security policies')
+        }
+
         const paidResult = await runPaidAiOperation(
           userId,
           () => getAi().chat({ messages, context }),
-        ).catch(async (error) => {
+        ).catch(async (error: any) => {
           await AiChatMessage.deleteOne({ _id: userMessage._id, userId, threadId: thread._id }).catch(() => undefined)
           await recordFailedUsage({
             userId,

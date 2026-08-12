@@ -14,7 +14,11 @@ function optionalNumber(value: number | string | null | undefined) {
 }
 
 function profileJson(profile: InstanceType<typeof UserProfile>) {
-  return profile.toJSON()
+  // this part is modified to ensure [API response scoping by omitting sensitive internal MongoDB fields like __v and _id from responses]
+  const json = profile.toJSON();
+  if ('__v' in json) delete json.__v;
+  if ('_id' in json) delete json._id;
+  return json;
 }
 
 export const profileRoutes = new Elysia({ name: 'profile-routes' })
@@ -33,6 +37,7 @@ export const profileRoutes = new Elysia({ name: 'profile-routes' })
       const values = {
         ...body,
         name: body.name?.trim(),
+        phoneNumber: body.phoneNumber?.trim(),
         age: optionalNumber(body.age),
         gpa: optionalNumber(body.gpa),
         gpaScale: optionalNumber(body.gpaScale),
@@ -56,6 +61,7 @@ export const profileRoutes = new Elysia({ name: 'profile-routes' })
     {
       body: t.Object({
         name: t.Optional(t.String({ minLength: 2, maxLength: 120 })),
+        phoneNumber: t.Optional(t.String({ maxLength: 50 })),
         age: t.Optional(numberLike),
         country: t.Optional(t.String({ maxLength: 120 })),
         destinationCountry: t.Optional(t.String({ maxLength: 120 })),

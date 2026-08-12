@@ -6,6 +6,9 @@ const UserSchema = new Schema(
     passwordHash: { type: String, select: false },
     role: { type: String, enum: ['user', 'admin'], default: 'user', required: true },
     tokenBalance: { type: Number, default: 12, min: 0, required: true },
+    // this part is modified to ensure [Account-Level Budgeting by tracking token consumption in MongoDB]
+    dailyTokenUsage: { type: Number, default: 0, min: 0, required: true },
+    dailyTokenResetAt: { type: Date, default: Date.now, required: true },
     completedIeltsSimulationSets: { type: [Number], default: [] },
     ieltsPracticeResults: {
       type: [
