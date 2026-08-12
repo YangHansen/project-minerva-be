@@ -272,7 +272,7 @@ export const ieltsSeed = [
   // ==========================================
     {
     setNumber: 2,
-    order: 5,
+    order: 1,
     section: 'listening',
     title: 'Listening: Town Tour',
     instruction: 'Complete the sentences below based on the map directions. Write NO MORE THAN THREE WORDS for each answer.',
@@ -301,7 +301,7 @@ export const ieltsSeed = [
   },
   {
     setNumber: 2,
-    order: 6,
+    order: 2,
     section: 'listening',
     title: 'Listening: Library Services',
     instruction: 'Choose the correct letter, A, B or C.',
@@ -326,7 +326,7 @@ export const ieltsSeed = [
   },
   {
     setNumber: 2,
-    order: 7,
+    order: 3,
     section: 'listening',
     title: 'Listening: Dissertation Progress',
     instruction: 'Choose the correct letter, A, B or C.',
@@ -358,7 +358,7 @@ export const ieltsSeed = [
   },
   {
     setNumber: 2,
-    order: 8,
+    order: 4,
     section: 'listening',
     title: 'Listening: Fashion Industry Careers',
     instruction: 'Answer the questions below. Write NO MORE THAN TWO WORDS for each answer.',
@@ -387,7 +387,7 @@ export const ieltsSeed = [
   },
   {
     setNumber: 2,
-    order: 2,
+    order: 5,
     section: 'reading',
     title: 'Industrial Revolution',
     instruction: 'Do the following statements agree with the information given in the passage? Write TRUE, FALSE or NOT GIVEN.',
@@ -402,7 +402,7 @@ export const ieltsSeed = [
   },
   {
     setNumber: 2,
-    order: 3,
+    order: 6,
     section: 'writing',
     title: 'Writing Task 1: Line Graph',
     instruction: 'You should spend about 20 minutes on this task. Write at least 150 words.',
@@ -418,7 +418,7 @@ export const ieltsSeed = [
   },
   {
     setNumber: 2,
-    order: 4,
+    order: 7,
     section: 'writing',
     title: 'Writing Task 2: Public Transport',
     instruction: 'You should spend about 40 minutes on this task. Write at least 250 words.',
@@ -433,7 +433,7 @@ export const ieltsSeed = [
   },
   {
     setNumber: 2,
-    order: 5,
+    order: 8,
     section: 'speaking',
     title: 'Speaking Part 1: Introduction and Interview',
     content: 'In this first part, the examiner will ask you some questions about yourself. Let\'s talk about your free time. What do you usually do on the weekends? Do you prefer spending your free time alone or with friends? How have your hobbies changed since you were a child?',
@@ -446,7 +446,7 @@ export const ieltsSeed = [
   },
   {
     setNumber: 2,
-    order: 6,
+    order: 9,
     section: 'speaking',
     title: 'Speaking Part 2: Long Turn',
     content: 'You will have 1 minute to prepare and 1 to 2 minutes to talk. Describe a book or movie that had a strong impact on you. You should say: what it is, when you read or watched it, what it is about, and explain why it had such a strong impact on you.',
@@ -459,7 +459,7 @@ export const ieltsSeed = [
   },
   {
     setNumber: 2,
-    order: 7,
+    order: 10,
     section: 'speaking',
     title: 'Speaking Part 3: Two-Way Discussion',
     content: 'We\'ve been talking about a book or movie that impacted you. Let\'s consider some broader questions about entertainment. Do you think people read fewer books now than they did in the past? How do you think the film industry influences our culture and society?',

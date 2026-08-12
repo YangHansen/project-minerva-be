@@ -214,6 +214,13 @@ export interface MinervaAI {
     allowFollowUp: boolean
   }): Promise<{ text: string; followUp?: string; metadata: ProviderMetadata }>
 
+  replyToIeltsSpeaking(input: {
+    part: number
+    prompt: string
+    transcript: string
+    previousTurns: Array<{ examiner: string; candidate: string }>
+  }): Promise<{ text: string; nextQuestion?: string; shouldContinue: boolean; metadata: ProviderMetadata }>
+
   synthesizeSpeech(input: SpeechSynthesisRequest): Promise<SpeechSynthesisResult>
 
   evaluateIeltsWriting(input: {

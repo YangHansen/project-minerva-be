@@ -45,6 +45,33 @@ export const createIeltsAiRoutes = ({ getAi }: AiRouteDependencies) =>
       }
     })
     .post(
+      '/api/ielts/speaking/turn',
+      async ({ request, body, set }) => {
+        const { userId } = await requireAuth(request)
+        validateAudio(body.audio)
+        const paidResult = await runPaidAiOperation(userId, async () => {
+          const transcript = await getAi().transcribe({ audio: body.audio, filename: body.audio.name || 'ielts-speaking-turn.webm', language: 'english', returnTimestamps: 'word' })
+          const previousTurns = body.history ? JSON.parse(body.history) : []
+          const reply = await getAi().replyToIeltsSpeaking({ part: body.part, prompt: body.prompt, transcript: transcript.text, previousTurns: Array.isArray(previousTurns) ? previousTurns.slice(-24) : [] })
+          return { transcript, reply }
+        }).catch(async (error) => {
+          await recordFailedUsage({ userId, operation: 'ielts_speaking', model: process.env.ELICE_TERRA_MODEL || 'gpt-5.6-terra', error, audioSeconds: body.durationSeconds })
+          return throwRouteError(error)
+        })
+        const { transcript, reply } = paidResult.value
+        await recordCompletedUsage({ userId, operation: 'ielts_speaking', metadata: reply.metadata, audioSeconds: body.durationSeconds })
+        const record = await IeltsAiEvaluation.create({ userId, kind: 'speaking', prompt: body.prompt, transcript: transcript.text, durationSeconds: body.durationSeconds, result: { conversational: true, part: body.part, reply: reply.text, nextQuestion: reply.nextQuestion, shouldContinue: reply.shouldContinue }, metadata: toStoredMetadata(reply.metadata), transcriptionMetadata: toStoredMetadata(transcript.metadata) })
+let voice: { dataUrl: string; contentType: string } | undefined
+        try {
+          const spokenText = reply.nextQuestion ? `${reply.text} ${reply.nextQuestion}` : reply.text
+          const speech = await getAi().synthesizeSpeech({ text: spokenText, language: 'a', voice: 'en-US-Wavenet-F', speed: 1 })
+          voice = { dataUrl: speech.dataUrl, contentType: speech.contentType }
+        } catch { /* Text reply remains available when Google TTS is unavailable. */ }
+        set.status = 201
+        return { turnId: String(record._id), transcript: { text: transcript.text, chunks: transcript.chunks, language: transcript.language }, examiner: { text: reply.text, nextQuestion: reply.nextQuestion, shouldContinue: reply.shouldContinue }, tokenBalance: paidResult.tokenBalance, voice }
+      },
+      { body: t.Object({ audio: t.File(), prompt: t.String({ minLength: 1, maxLength: 8_000 }), part: t.Integer({ minimum: 1, maximum: 3 }), durationSeconds: t.Numeric({ minimum: 1, maximum: 1_800 }), history: t.Optional(t.String({ maxLength: 100_000 })) }) },
+    )    .post(
       '/api/ielts/writing/evaluate',
       async ({ request, body, set }) => {
         const { userId } = await requireAuth(request)

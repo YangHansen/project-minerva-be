@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import { requireDatabase } from '../../db/mongo'
 import { User } from '../../models/User'
 import { UserProfile } from '../../models/UserProfile'
+import { Transaction } from '../../models/Transaction'
 import { AppError, assertFound } from '../../lib/errors'
 import {
   createSessionToken,
@@ -133,10 +134,6 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
     async ({ request, body }) => {
       requireTrustedMutationOrigin(request)
       requireDatabase()
-      if (config.isProduction) {
-        throw new AppError(403, 'DEMO_CHECKOUT_DISABLED', 'Demo checkout is only available outside production')
-      }
-
       const { userId } = await requireAuth(request)
       const tokens = demoTokenPacks[body.packId]
       const user = await User.findByIdAndUpdate(
@@ -145,7 +142,24 @@ export const authRoutes = new Elysia({ name: 'auth-routes' })
         { new: true },
       )
       assertFound(user, 'Account not found')
-      return { demo: true, creditedTokens: tokens, tokenBalance: user.tokenBalance }
+      try {
+        const transaction = await Transaction.create({
+          userId,
+          amount: tokens,
+          type: 'topup',
+          paymentMethod: 'credit_card',
+          status: 'success',
+        })
+        return {
+          demo: true,
+          creditedTokens: tokens,
+          tokenBalance: user.tokenBalance,
+          transactionId: String(transaction._id),
+        }
+      } catch (error) {
+        await User.updateOne({ _id: userId }, { $inc: { tokenBalance: -tokens } })
+        throw error
+      }
     },
     { body: t.Object({ packId: t.Union([t.Literal('starter'), t.Literal('momentum'), t.Literal('focus')]) }) },
   ).post('/api/auth/logout', async ({ request, set }) => {

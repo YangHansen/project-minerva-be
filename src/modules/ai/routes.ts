@@ -26,6 +26,6 @@ export const createMinervaAiRoutes = (options: MinervaAiRouteOptions = {}) => {
     .use(createDocumentReviewRoutes(dependencies))
     .use(createInterviewRoutes(dependencies))
     .use(createIeltsAiRoutes(dependencies))
-    .use(createRecommendationRoutes())
+    .use(createRecommendationRoutes(dependencies))
     .use(createAiUsageRoutes())
 }

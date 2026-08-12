@@ -1,6 +1,9 @@
 import { Elysia, t } from 'elysia'
+import { mkdir, unlink } from 'node:fs/promises'
+import { dirname, extname, resolve, sep } from 'node:path'
 import { Types } from 'mongoose'
 import { requireAuth } from '../../auth/session'
+import { config } from '../../config/env'
 import { requireDatabase } from '../../db/mongo'
 import { AppError, assertFound } from '../../lib/errors'
 import { sanitizeEditorHtml, stripHtml } from '../../lib/serialize'
@@ -15,6 +18,47 @@ const documentKind = t.Union([
   t.Literal('passport'), t.Literal('certificate'), t.Literal('custom'),
 ])
 const documentStatus = t.Union([t.Literal('missing'), t.Literal('draft'), t.Literal('ready')])
+const allowedUploadTypes = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  'image/jpeg',
+  'image/png',
+])
+
+function storedUploadPath(storageKey: string) {
+  const root = resolve(config.uploadDirectory)
+  const target = resolve(root, storageKey)
+  if (target !== root && !target.startsWith(`${root}${sep}`)) {
+    throw new AppError(400, 'INVALID_UPLOAD_PATH', 'The stored document path is invalid')
+  }
+  return target
+}
+
+async function persistUpload(file: File, userId: string) {
+  if (!file.size) throw new AppError(422, 'EMPTY_DOCUMENT_UPLOAD', 'Choose a non-empty document file')
+  if (file.size > config.uploadMaxBytes) {
+    throw new AppError(413, 'DOCUMENT_UPLOAD_TOO_LARGE', `The document must be smaller than ${config.uploadMaxBytes} bytes`)
+  }
+  const mimeType = file.type.toLowerCase().split(';', 1)[0].trim()
+  if (!allowedUploadTypes.has(mimeType)) {
+    throw new AppError(415, 'UNSUPPORTED_DOCUMENT_TYPE', 'Upload a PDF, DOC, DOCX, TXT, PNG, or JPG document')
+  }
+  const suffix = extname(file.name).toLowerCase().replace(/[^.a-z0-9]/g, '').slice(0, 12)
+  const storageKey = `${userId}/${crypto.randomUUID()}${suffix}`
+  const target = storedUploadPath(storageKey)
+  await mkdir(dirname(target), { recursive: true })
+  await Bun.write(target, file)
+  return { originalName: file.name.slice(0, 255), storageKey, mimeType, size: file.size }
+}
+
+async function removeStoredUpload(upload: { storageKey?: string } | null | undefined) {
+  if (!upload?.storageKey) return
+  try { await unlink(storedUploadPath(upload.storageKey)) } catch (error) {
+    if (!(error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT')) throw error
+  }
+}
 const documentPage = t.Object({
   id: t.String({ minLength: 1, maxLength: 120 }),
   title: t.String({ minLength: 1, maxLength: 160 }),
