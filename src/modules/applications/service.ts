@@ -52,7 +52,7 @@ export async function applicationJson(application: Record<string, any>) {
     id: String(application._id),
     status: application.status,
     notes: application.notes ?? '',
-    scholarshipId: String(application.scholarshipId),
+    scholarshipId: String(scholarshipRecord?._id ?? application.scholarshipId),
     scholarship: scholarshipRecord ? scholarshipJson(scholarshipRecord as Record<string, any>) : null,
     createdAt: new Date(application.createdAt).toISOString(),
     updatedAt: new Date(application.updatedAt).toISOString(),
