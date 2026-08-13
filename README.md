@@ -166,19 +166,19 @@ Router[app.ts Router]
 
 subgraph Modules [Domain Modules]
 
-Auth[/auth]
+Auth["/auth"]
 
-Scholarships[/scholarships]
+Scholarships["/scholarships"]
 
-Applications[/applications]
+Applications["/applications"]
 
-IELTS[/ielts]
+IELTS["/ielts"]
 
-Documents[/documents]
+Documents["/documents"]
 
-Mentors[/mentors]
+Mentors["/mentors"]
 
-AI[/ai]
+AI["/ai"]
 
 end
 
