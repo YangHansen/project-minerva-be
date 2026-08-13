@@ -6,6 +6,7 @@ import { ChecklistItem } from '../../models/ChecklistItem'
 import { Document, DocumentVersion } from '../../models/Document'
 import { DocumentAiReview } from '../ai/models'
 import { applicationJson, ensureApplicationWorkspace, findOwnedApplication, resolveScholarshipId } from './service'
+import { sendAddedReminder } from '../reminders/service'
 
 const applicationStatus = t.Union([
   t.Literal('saved'),
@@ -49,6 +50,7 @@ export const applicationRoutes = new Elysia({ name: 'application-routes' })
       await ensureApplicationWorkspace(String(application._id), userId)
       await application.populate('scholarshipId')
       set.status = existing ? 200 : 201
+      if (!existing) void sendAddedReminder(String(application._id), userId)
       return { application: await applicationJson(application.toObject() as Record<string, any>) }
     },
     {

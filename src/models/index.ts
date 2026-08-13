@@ -8,3 +8,4 @@ export * from './AIReview';
 export * from './IELTS';
 export * from './Mentor';
 export * from './Transaction';
+export * from './EmailReminder';

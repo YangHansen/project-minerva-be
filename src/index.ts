@@ -2,6 +2,7 @@ import { app } from './app'
 import { config } from './config/env'
 import { connectDatabase, disconnectDatabase } from './db/mongo'
 import { seedScholarships, seedIelts, seedMentors } from './db/seed'
+import { runMilestoneReminders } from './modules/reminders/service'
 
 async function start() {
   const connected = await connectDatabase()
@@ -17,6 +18,12 @@ async function start() {
 
   app.listen({ port: config.port, hostname: '0.0.0.0' })
   console.info(`Minerva API running at http://localhost:${app.server?.port}`)
+
+  // ponytail: in-process cron; misses a day if the server is down at 19:00. Add an external scheduler if uptime isn't guaranteed.
+  Bun.cron('0 19 * * *', () => {
+    runMilestoneReminders().catch((error) => console.error('[reminders] milestone cron failed', error))
+  })
+  console.info('[reminders] deadline reminder cron scheduled for 19:00 daily')
 }
 
 async function shutdown(signal: string) {
