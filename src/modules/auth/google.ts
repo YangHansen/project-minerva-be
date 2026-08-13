@@ -21,7 +21,8 @@ export async function createOAuthStateToken(next: string): Promise<string> {
 }
 
 export function oauthStateCookie(state: string) {
-  return authCookie(OAUTH_STATE_COOKIE, state, OAUTH_STATE_TTL_SECONDS)
+  // ponytail: Lax so Google's cross-site callback redirect can send it back; the session cookie stays Strict.
+  return authCookie(OAUTH_STATE_COOKIE, state, OAUTH_STATE_TTL_SECONDS, 'Lax')
 }
 
 export async function readOAuthNext(state: string): Promise<string | null> {
